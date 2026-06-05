@@ -32,7 +32,14 @@
                 <i class="fa-solid fa-wallet pulse-icon"></i>
                 <span>Finances<span class="highlight">IQ</span></span>
             </div>
-            <div class="header-right">
+            <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn-action" title="Exportar Backup" id="btn-export-backup" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <button class="btn-action" title="Importar Backup" id="btn-import-backup" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                    <i class="fa-solid fa-upload"></i>
+                </button>
+                <input type="file" id="import-file-input" accept=".json" style="display: none;">
                 <span class="date-badge"><span id="current-date-span">04/06/2026</span></span>
             </div>
         </header>

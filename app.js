@@ -422,6 +422,52 @@ function setupEventListeners() {
             }
         }
     });
+
+    // --- SISTEMA DE IMPORTAÇÃO E EXPORTAÇÃO DE BACKUP ---
+    document.getElementById('btn-export-backup').addEventListener('click', () => {
+        const backupData = {
+            products: state.products,
+            transactions: state.transactions,
+            installments: state.installments
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `financesiq_backup_${Date.now()}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    });
+
+    const fileInput = document.getElementById('import-file-input');
+    document.getElementById('btn-import-backup').addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const imported = JSON.parse(evt.target.result);
+                if (imported.products && imported.transactions && imported.installments) {
+                    state.products = imported.products;
+                    state.transactions = imported.transactions;
+                    state.installments = imported.installments;
+                    saveStateToLocalStorage();
+                    updateUI();
+                    alert('Backup importado com sucesso! Seus dados foram restaurados.');
+                } else {
+                    alert('Arquivo de backup inválido. Verifique o arquivo selecionado.');
+                }
+            } catch (err) {
+                alert('Erro ao ler arquivo de backup: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    });
 }
 
 function switchTab(tabId) {
