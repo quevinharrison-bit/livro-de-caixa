@@ -1,0 +1,19 @@
+{
+  "name": "FinancesIQ - Fluxo de Caixa Inteligente",
+  "short_name": "FinancesIQ",
+  "description": "Aplicativo mobile-first para controle inteligente de fluxo de caixa e precificação.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "orientation": "portrait",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2953/2953363.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

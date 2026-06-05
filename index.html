@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FinancesIQ Mobile</title>
+    <!-- Metas para PWA no Android e iOS -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b0f19">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2953/2953363.png">
+
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top App Bar (Estilo Android) -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-wallet pulse-icon"></i>
+                <span>Finances<span class="highlight">IQ</span></span>
+            </div>
+            <div class="header-right">
+                <span class="date-badge"><span id="current-date-span">04/06/2026</span></span>
+            </div>
+        </header>
+
+        <!-- Container de Conteúdo Principal -->
+        <main class="main-content">
+            <!-- ABA 1: DASHBOARD -->
+            <section id="dashboard" class="tab-pane active">
+                <div class="section-title-wrapper">
+                    <h2>Visão Geral</h2>
+                    <p class="subtitle">Estatísticas e saldos em tempo real</p>
+                </div>
+
+                <!-- Carrossel / Grid de Métricas (Scroll Horizontal no Mobile) -->
+                <div class="metrics-slider">
+                    <div class="metric-card balance-actual">
+                        <div class="metric-header">
+                            <span>Saldo Geral Atual</span>
+                            <div class="metric-icon"><i class="fa-solid fa-vault"></i></div>
+                        </div>
+                        <div class="metric-value" id="metric-actual-balance">R$ 0,00</div>
+                        <div class="metric-footer">
+                            <span class="badge"><i class="fa-solid fa-circle-check"></i> Recebido até hoje</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card balance-projected">
+                        <div class="metric-header">
+                            <span>Saldo Projetado</span>
+                            <div class="metric-icon"><i class="fa-solid fa-forward"></i></div>
+                        </div>
+                        <div class="metric-value" id="metric-projected-balance">R$ 0,00</div>
+                        <div class="metric-footer">
+                            <span class="badge"><i class="fa-solid fa-circle-plus"></i> Futuro projetado</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card total-receivables">
+                        <div class="metric-header">
+                            <span>Total a Receber</span>
+                            <div class="metric-icon"><i class="fa-solid fa-circle-arrow-up"></i></div>
+                        </div>
+                        <div class="metric-value text-green" id="metric-to-receive">R$ 0,00</div>
+                        <div class="metric-footer">
+                            <span class="badge text-green"><i class="fa-solid fa-clock"></i> Contas a receber</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card total-payables">
+                        <div class="metric-header">
+                            <span>Total a Pagar</span>
+                            <div class="metric-icon"><i class="fa-solid fa-circle-arrow-down"></i></div>
+                        </div>
+                        <div class="metric-value text-red" id="metric-to-pay">R$ 0,00</div>
+                        <div class="metric-footer">
+                            <span class="badge text-red"><i class="fa-solid fa-triangle-exclamation"></i> Contas a pagar</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos e Rankings -->
+                <div class="dashboard-stack">
+                    <div class="glass-card chart-container">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-area"></i> Projeção de Fluxo de Caixa</h3>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="flowChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-card ranking-container">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-ranking-star"></i> Performance de Mercadorias</h3>
+                        </div>
+                        <div class="ranking-tabs">
+                            <button class="rank-tab-btn active" data-rank="revenue">Faturamento</button>
+                            <button class="rank-tab-btn" data-rank="qty">Quantidade</button>
+                        </div>
+                        <div class="ranking-content">
+                            <div class="ranking-best-product" id="best-product-banner">
+                                <i class="fa-solid fa-crown text-gold"></i>
+                                <div class="best-product-details">
+                                    <small>Top Produto</small>
+                                    <h4 id="best-product-name">-</h4>
+                                </div>
+                            </div>
+                            <div class="ranking-list" id="ranking-list-items">
+                                <!-- Preenchido por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 2: TRANSAÇÕES -->
+            <section id="transactions" class="tab-pane">
+                <div class="section-title-wrapper">
+                    <h2>Livro de Caixa</h2>
+                    <p class="subtitle">Gerencie suas entradas e saídas</p>
+                </div>
+
+                <!-- Botão Flutuante (FAB) para Adicionar Transação no Android -->
+                <button class="fab" id="open-transaction-modal-btn">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+
+                <!-- Filtros de Lançamentos -->
+                <div class="filter-container glass-card" style="margin-bottom: 16px; padding: 12px;">
+                    <div class="form-row" style="gap: 8px;">
+                        <div class="form-group col-6">
+                            <label for="filter-type">Tipo</label>
+                            <select id="filter-type" style="padding: 6px 10px; font-size: 13px;">
+                                <option value="todos">Todos os Tipos</option>
+                                <option value="entrada">Entradas (Receitas)</option>
+                                <option value="saida">Saídas (Despesas)</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="filter-period">Período</label>
+                            <select id="filter-period" style="padding: 6px 10px; font-size: 13px;">
+                                <option value="todos" selected>Qualquer Data</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes">Este Mês</option>
+                                <option value="mes-passado">Mês Passado</option>
+                                <option value="custom">Personalizado...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Intervalo de Datas Personalizado -->
+                    <div id="filter-custom-dates" class="form-row" style="display: none; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 8px;">
+                        <div class="form-group col-6">
+                            <label for="filter-start-date">De</label>
+                            <input type="date" id="filter-start-date" style="padding: 6px 10px; font-size: 13px;">
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="filter-end-date">Até</label>
+                            <input type="date" id="filter-end-date" style="padding: 6px 10px; font-size: 13px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumo dos Filtros na Janela de Lançamentos -->
+                <div id="filter-summary-card" class="glass-card" style="margin-bottom: 16px; padding: 12px; border-color: var(--border-glow);">
+                    <h4 style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary);"><i class="fa-solid fa-calculator"></i> Balanço do Período Filtrado</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                        <div style="background: rgba(16, 185, 129, 0.04); padding: 8px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.1);">
+                            <span style="font-size: 10px; color: var(--text-secondary); display:block; text-transform: uppercase; font-weight: 600;">Entradas</span>
+                            <span style="font-size: 13px; font-weight: 700; color: var(--color-green); display: block; line-height: 1.2;" id="sum-filter-entries">R$ 0,00</span>
+                        </div>
+                        <div style="background: rgba(239, 68, 68, 0.04); padding: 8px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.1);">
+                            <span style="font-size: 10px; color: var(--text-secondary); display:block; text-transform: uppercase; font-weight: 600;">Saídas</span>
+                            <span style="font-size: 13px; font-weight: 700; color: var(--color-red); display: block; line-height: 1.2;" id="sum-filter-exits">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.02); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px; font-weight: 600;">Saldo do Período:</span>
+                        <span style="font-size: 14px; font-weight: 800;" id="sum-filter-balance">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Lista de Transações em formato de Cards (Melhor para mobile) -->
+                <div class="transactions-list-mobile" id="transactions-list-mobile">
+                    <!-- Cards dinâmicos das transações -->
+                </div>
+
+                <!-- Modal de Nova Transação -->
+                <div id="transaction-modal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content glass-card">
+                        <div class="modal-header">
+                            <h3 id="modal-title-text"><i class="fa-solid fa-circle-plus"></i> Nova Movimentação</h3>
+                            <button class="btn-close" id="close-transaction-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <form id="transaction-form" class="responsive-form">
+                            <div class="form-group">
+                                <label for="trans-desc">Descrição <span class="required">*</span></label>
+                                <input type="text" id="trans-desc" placeholder="Ex: Venda de Notebook" required>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="trans-val">Valor (R$) <span class="required">*</span></label>
+                                    <input type="number" id="trans-val" step="0.01" min="0.01" placeholder="0,00" required>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="trans-date">Data <span class="required">*</span></label>
+                                    <input type="date" id="trans-date" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="trans-type">Tipo <span class="required">*</span></label>
+                                    <select id="trans-type" required>
+                                        <option value="entrada" selected>Entrada</option>
+                                        <option value="saida">Saída</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="trans-cat">Categoria <span class="required">*</span></label>
+                                    <select id="trans-cat" required>
+                                        <option value="Venda de Mercadoria">Venda</option>
+                                        <option value="Prestação de Serviços">Serviço</option>
+                                        <option value="Fornecedor de Estoque">Fornecedor</option>
+                                        <option value="Luz/Energia">Luz / Água</option>
+                                        <option value="Internet/SaaS">SaaS / Internet</option>
+                                        <option value="Aluguel">Aluguel</option>
+                                        <option value="Salários/Encargos">Salários</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trans-product">Mercadoria/Produto Associado</label>
+                                <select id="trans-product">
+                                    <option value="">Nenhum produto associado</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trans-method">Meio de Pagamento <span class="required">*</span></label>
+                                <select id="trans-method" required>
+                                    <option value="pix" selected>PIX</option>
+                                    <option value="cartao">Cartão</option>
+                                    <option value="dinheiro">Dinheiro</option>
+                                </select>
+                            </div>
+
+                            <div class="form-row payment-options">
+                                <div class="form-group col-6">
+                                    <label for="trans-payment">Pagamento</label>
+                                    <select id="trans-payment">
+                                        <option value="avista" selected>À Vista</option>
+                                        <option value="parcelado">Parcelado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-6" id="installments-group" style="display: none;">
+                                    <label for="trans-installments">Parcelas <span class="required">*</span></label>
+                                    <select id="trans-installments">
+                                        <option value="1">1x</option>
+                                        <option value="2">2x</option>
+                                        <option value="3" selected>3x</option>
+                                        <option value="4">4x</option>
+                                        <option value="5">5x</option>
+                                        <option value="6">6x</option>
+                                        <option value="7">7x</option>
+                                        <option value="8">8x</option>
+                                        <option value="9">9x</option>
+                                        <option value="10">10x</option>
+                                        <option value="11">11x</option>
+                                        <option value="12">12x</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trans-status">Status de Pagamento</label>
+                                <select id="trans-status">
+                                    <option value="pago" selected>Pago / Recebido</option>
+                                    <option value="pendente">Pendente</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn-primary w-100"><i class="fa-solid fa-floppy-disk"></i> Salvar Lançamento</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 3: MERCADORIAS -->
+            <section id="products" class="tab-pane">
+                <div class="section-title-wrapper">
+                    <h2>Meus Produtos</h2>
+                    <p class="subtitle">Gerencie o custo de aquisição</p>
+                </div>
+
+                <div class="products-mobile-layout">
+                    <!-- Formulário Rápido de Cadastro (Acordeão/Colapsável ou Card Fixo) -->
+                    <div class="glass-card quick-product-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-box-open"></i> Nova Mercadoria</h3>
+                        </div>
+                        <form id="product-form" class="responsive-form">
+                            <div class="form-group">
+                                <label for="prod-name">Nome do Produto <span class="required">*</span></label>
+                                <input type="text" id="prod-name" placeholder="Ex: Notebook Gamer Pro" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="prod-cost">Preço de Custo (R$) <span class="required">*</span></label>
+                                <input type="number" id="prod-cost" step="0.01" min="0.01" placeholder="0,00" required>
+                            </div>
+                            <button type="submit" class="btn-primary w-100"><i class="fa-solid fa-plus"></i> Cadastrar Mercadoria</button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Produtos Mobile -->
+                    <div class="glass-card product-list-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-warehouse"></i> Catálogo e Estoque</h3>
+                        </div>
+                        <div class="products-list-mobile" id="products-list-mobile">
+                            <!-- Cards de produtos dinâmicos -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 4: PRECIFICAÇÃO INTELIGENTE -->
+            <section id="pricing" class="tab-pane">
+                <div class="section-title-wrapper">
+                    <h2>Precificação</h2>
+                    <p class="subtitle">Markup em tempo real para lucro ideal</p>
+                </div>
+
+                <div class="pricing-mobile-layout">
+                    <!-- Inputs -->
+                    <div class="glass-card calc-inputs">
+                        <div class="form-group">
+                            <label for="calc-select-product">Carregar Mercadoria (Opcional)</label>
+                            <select id="calc-select-product">
+                                <option value="">-- Selecione para carregar custo --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calc-cost">Custo de Aquisição (R$)</label>
+                            <div class="input-prefix-wrapper">
+                                <span class="input-prefix">R$</span>
+                                <input type="number" id="calc-cost" step="0.01" min="0" value="100.00">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label for="calc-fixed-costs">C. Operacionais (%)</label>
+                                <div class="input-suffix-wrapper">
+                                    <input type="number" id="calc-fixed-costs" step="0.1" min="0" max="99" value="15.0">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group col-6">
+                                <label for="calc-taxes">Impostos (%)</label>
+                                <div class="input-suffix-wrapper">
+                                    <input type="number" id="calc-taxes" step="0.1" min="0" max="99" value="10.0">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="slider-header">
+                                <label for="calc-margin">Margem de Lucro Desejada (%)</label>
+                                <span class="slider-val" id="calc-margin-val">25.0%</span>
+                            </div>
+                            <input type="range" id="calc-margin" min="1" max="150" value="25" class="slider-glow">
+                        </div>
+                    </div>
+
+                    <!-- Resultados -->
+                    <div class="glass-card calc-result">
+                        <div class="pricing-output-box">
+                            <div class="output-sub">Preço de Venda Sugerido</div>
+                            <div class="output-value" id="calc-ideal-price">R$ 200,00</div>
+                            <div class="output-markup">Multiplicador Markup: <strong id="calc-markup-factor">2.00x</strong></div>
+                        </div>
+
+                        <div class="pricing-breakdown">
+                            <h4>Distribuição de Preço</h4>
+                            <div class="breakdown-item">
+                                <span>Custo de Aquisição</span>
+                                <span class="text-white" id="breakdown-cost">R$ 100,00 (50.0%)</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Custos Operacionais</span>
+                                <span class="text-orange" id="breakdown-fixed">R$ 30,00 (15.0%)</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Impostos</span>
+                                <span class="text-red" id="breakdown-taxes">R$ 20,00 (10.0%)</span>
+                            </div>
+                            <div class="breakdown-item highlight-profit">
+                                <span>Lucro Líquido Real</span>
+                                <span class="text-green" id="breakdown-profit">R$ 50,00 (25.0%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Sheet (Gaveta Mobile de Parcelas) -->
+        <div id="bottom-sheet-backdrop" class="sheet-backdrop" style="display: none;"></div>
+        <div id="installments-detail-card" class="bottom-sheet" style="display: none;">
+            <div class="bottom-sheet-drag-handle"></div>
+            <div class="bottom-sheet-header">
+                <h3><i class="fa-solid fa-circle-nodes"></i> Parcelas: <span id="detail-trans-name">Transação</span></h3>
+                <button class="btn-close-sheet" id="btn-close-sheet"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="bottom-sheet-content">
+                <div class="installments-list-mobile" id="installments-list-mobile">
+                    <!-- Parcelas dinâmicas -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Bar (Barra Inferior Estilo Android Nativo) -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="dashboard">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-btn" data-tab="transactions">
+                <i class="fa-solid fa-receipt"></i>
+                <span>Lançamentos</span>
+            </button>
+            <button class="nav-btn" data-tab="products">
+                <i class="fa-solid fa-box"></i>
+                <span>Produtos</span>
+            </button>
+            <button class="nav-btn" data-tab="pricing">
+                <i class="fa-solid fa-tags"></i>
+                <span>Preços</span>
+            </button>
+        </nav>
+    </div>
+    <!-- Lógica de Controlo e Dados -->
+    <script src="app.js"></script>
+</body>
+</html>
