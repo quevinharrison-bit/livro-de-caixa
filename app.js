@@ -110,6 +110,7 @@ const seedTransactions = [
 
 // Instância Global do Gráfico Chart.js
 let flowChartInstance = null;
+let categoryChartInstance = null;
 
 // --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -166,6 +167,7 @@ function initApp() {
         
         saveStateToLocalStorage();
     }
+    populateMonthlyReportPeriodSelector();
 }
 
 // --- PERSISTÊNCIA ---
@@ -468,6 +470,23 @@ function setupEventListeners() {
         };
         reader.readAsText(file);
     });
+
+    // Botão de reset de dados
+    document.getElementById('btn-reset-db').addEventListener('click', () => {
+        if (confirm('Tem certeza de que deseja resetar todo o banco de dados para os valores padrão? Todos os seus lançamentos personalizados serão apagados.')) {
+            resetDatabase();
+        }
+    });
+
+    // Botão de imprimir PDF
+    document.getElementById('btn-print-report').addEventListener('click', () => {
+        window.print();
+    });
+
+    // Seletor de período mensal
+    document.getElementById('monthly-select-period').addEventListener('change', () => {
+        renderMonthlyReport();
+    });
 }
 
 function switchTab(tabId) {
@@ -505,6 +524,8 @@ function updateUI() {
     renderProductsListMobile();
     populateSelects();
     renderFilterSummary(); // Atualiza o resumo de fluxo do período filtrado
+    renderMonthlyReport();
+    renderCategoryChart();
 }
 
 // Função auxiliar para verificar se uma data corresponde aos filtros de período ativos
@@ -1141,3 +1162,287 @@ function calculatePriceMarkup() {
     bdTaxes.innerText = `${formatCurrency(valTaxes)} (${taxes.toFixed(1)}%)`;
     bdProfit.innerText = `${formatCurrency(valProfit)} (${margin.toFixed(1)}%)`;
 }
+
+// --- CONTROLES DE FECHAMENTO MENSAL E CATEGORIAS ---
+
+function populateMonthlyReportPeriodSelector() {
+    const select = document.getElementById('monthly-select-period');
+    if (!select) return;
+    select.innerHTML = '';
+    
+    const monthsNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    
+    const currentYear = parseInt(SYSTEM_TODAY.substring(0, 4)) || 2026;
+    const currentMonthStr = SYSTEM_TODAY.substring(0, 7); // "2026-06"
+    
+    for (let m = 0; m < 12; m++) {
+        const option = document.createElement('option');
+        const monthVal = String(m + 1).padStart(2, '0');
+        const valueStr = `${currentYear}-${monthVal}`;
+        option.value = valueStr;
+        option.innerText = `${monthsNames[m]} de ${currentYear}`;
+        
+        if (valueStr === currentMonthStr) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    }
+}
+
+function resetDatabase() {
+    localStorage.clear();
+    state.products = [...seedProducts];
+    state.transactions = [...seedTransactions];
+    state.installments = [];
+    
+    state.transactions.forEach(trans => {
+        const generated = generateInstallments(trans);
+        
+        if (trans.id === 't3') {
+            generated[0].status = 'pago';
+            generated[1].status = 'pago'; 
+            generated[2].status = 'pendente';
+        } else if (trans.id === 't4') {
+            generated[0].status = 'pago';
+            generated[1].status = 'pago';
+            generated[2].status = 'pendente';
+            generated[3].status = 'pendente';
+            generated[4].status = 'pendente';
+            generated[5].status = 'pendente';
+        }
+        
+        state.installments.push(...generated);
+    });
+    
+    saveStateToLocalStorage();
+    
+    // Voltar para a aba principal (dashboard)
+    switchTab('dashboard');
+    
+    // Resetar seletor mensal
+    populateMonthlyReportPeriodSelector();
+    
+    updateUI();
+    alert('Banco de dados resetado com sucesso!');
+}
+
+function renderCategoryChart() {
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const currentMonthStr = SYSTEM_TODAY.substring(0, 7);
+    
+    const categoryTotals = {};
+    
+    state.installments.forEach(install => {
+        const trans = state.transactions.find(t => t.id === install.transacaoId);
+        if (!trans) return;
+        
+        if (trans.tipo === 'saida' && install.dataVencimento.startsWith(currentMonthStr)) {
+            const cat = trans.categoria || 'Outros';
+            categoryTotals[cat] = (categoryTotals[cat] || 0) + install.valor;
+        }
+    });
+    
+    const categories = Object.keys(categoryTotals);
+    const totals = Object.values(categoryTotals);
+    
+    if (categories.length === 0) {
+        if (categoryChartInstance) {
+            categoryChartInstance.destroy();
+            categoryChartInstance = null;
+        }
+        
+        categoryChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Nenhuma Despesa'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['rgba(255, 255, 255, 0.05)'],
+                    borderColor: ['rgba(255, 255, 255, 0.1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#6b7280', font: { family: 'Outfit', size: 10 } }
+                    },
+                    tooltip: { enabled: false }
+                }
+            }
+        });
+        return;
+    }
+    
+    const colors = [
+        '#ef4444',
+        '#f59e0b',
+        '#3b82f6',
+        '#ec4899',
+        '#8b5cf6',
+        '#06b6d4',
+        '#10b981',
+        '#6366f1'
+    ];
+    
+    if (categoryChartInstance) {
+        categoryChartInstance.destroy();
+    }
+    
+    categoryChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: categories,
+            datasets: [{
+                data: totals,
+                backgroundColor: colors.slice(0, categories.length),
+                borderColor: '#111827',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#9ca3af',
+                        font: { family: 'Outfit', size: 10 },
+                        boxWidth: 12,
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percent = ((val / total) * 100).toFixed(1);
+                            return `${context.label}: ${formatCurrency(val)} (${percent}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+}
+
+function renderMonthlyReport() {
+    const select = document.getElementById('monthly-select-period');
+    if (!select) return;
+    const selectedMonth = select.value;
+    
+    let exitsTotal = 0;
+    let exitsPaid = 0;
+    let entriesTotal = 0;
+    let entriesPaid = 0;
+    
+    const exitsListContainer = document.getElementById('monthly-exits-list');
+    const entriesListContainer = document.getElementById('monthly-entries-list');
+    
+    if (!exitsListContainer || !entriesListContainer) return;
+    
+    exitsListContainer.innerHTML = '';
+    entriesListContainer.innerHTML = '';
+    
+    const selectedInstallments = state.installments.filter(inst => {
+        return inst.dataVencimento.startsWith(selectedMonth);
+    });
+    
+    if (selectedInstallments.length === 0) {
+        exitsListContainer.innerHTML = '<p class="text-center text-muted py-4">Nenhuma despesa neste período.</p>';
+        entriesListContainer.innerHTML = '<p class="text-center text-muted py-4">Nenhuma receita neste período.</p>';
+        
+        document.getElementById('monthly-total-exits').innerText = formatCurrency(0);
+        document.getElementById('monthly-detail-exits').innerText = 'R$ 0,00 Pago / R$ 0,00 Pend.';
+        document.getElementById('monthly-total-entries').innerText = formatCurrency(0);
+        document.getElementById('monthly-detail-entries').innerText = 'R$ 0,00 Rec. / R$ 0,00 Pend.';
+        return;
+    }
+    
+    selectedInstallments.forEach(inst => {
+        const trans = state.transactions.find(t => t.id === inst.transacaoId);
+        if (!trans) return;
+        
+        const isEntrada = trans.tipo === 'entrada';
+        const isPaid = inst.status === 'pago';
+        const val = inst.valor;
+        
+        if (isEntrada) {
+            entriesTotal += val;
+            if (isPaid) entriesPaid += val;
+        } else {
+            exitsTotal += val;
+            if (isPaid) exitsPaid += val;
+        }
+        
+        const itemEl = document.createElement('div');
+        itemEl.className = 'installment-item-mobile';
+        itemEl.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px; margin-bottom: 8px;';
+        
+        const labelParcela = trans.numParcelas > 1 ? ` (Parc. ${inst.numeroParcela}/${trans.numParcelas})` : '';
+        const paymentMethodLabel = (trans.metodoPagamento || 'pix').toUpperCase();
+        
+        const actionBtn = isPaid 
+            ? `<button class="btn-action" title="Marcar como Pendente" onclick="toggleMonthlyInstallmentStatus('${inst.id}')"><i class="fa-solid fa-clock text-orange"></i></button>`
+            : `<button class="btn-action toggle-paid" title="Marcar como Pago" onclick="toggleMonthlyInstallmentStatus('${inst.id}')"><i class="fa-solid fa-circle-check text-green"></i></button>`;
+            
+        itemEl.innerHTML = `
+            <div>
+                <strong>${trans.descricao}${labelParcela}</strong>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
+                    Venc: ${formatDate(inst.dataVencimento)} | Categoria: ${trans.categoria} | <span style="color: var(--color-primary); font-weight:600;">${paymentMethodLabel}</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="${isEntrada ? 'type-in' : 'type-out'}" style="font-weight: 700;">
+                    ${isEntrada ? '+' : '-'} ${formatCurrency(val)}
+                </span>
+                <span class="status-badge ${isPaid ? 'paid' : 'pending'}" style="font-size: 9px; padding: 2px 6px;">
+                    ${isPaid ? (isEntrada ? 'Recebido' : 'Pago') : 'Pendente'}
+                </span>
+                ${actionBtn}
+            </div>
+        `;
+        
+        if (isEntrada) {
+            entriesListContainer.appendChild(itemEl);
+        } else {
+            exitsListContainer.appendChild(itemEl);
+        }
+    });
+    
+    if (exitsListContainer.children.length === 0) {
+        exitsListContainer.innerHTML = '<p class="text-center text-muted py-3">Sem despesas registradas.</p>';
+    }
+    if (entriesListContainer.children.length === 0) {
+        entriesListContainer.innerHTML = '<p class="text-center text-muted py-3">Sem receitas registradas.</p>';
+    }
+    
+    document.getElementById('monthly-total-exits').innerText = formatCurrency(exitsTotal);
+    document.getElementById('monthly-detail-exits').innerText = `${formatCurrency(exitsPaid)} Pago / ${formatCurrency(exitsTotal - exitsPaid)} Pend.`;
+    
+    document.getElementById('monthly-total-entries').innerText = formatCurrency(entriesTotal);
+    document.getElementById('monthly-detail-entries').innerText = `${formatCurrency(entriesPaid)} Rec. / ${formatCurrency(entriesTotal - entriesPaid)} Pend.`;
+}
+
+window.toggleMonthlyInstallmentStatus = function(instId) {
+    const install = state.installments.find(i => i.id === instId);
+    if (!install) return;
+
+    install.status = install.status === 'pago' ? 'pendente' : 'pago';
+    
+    saveStateToLocalStorage();
+    updateUI();
+};
