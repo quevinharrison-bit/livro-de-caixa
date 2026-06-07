@@ -193,8 +193,14 @@ function addMonths(dateStr, months) {
     const month = parseInt(parts[1], 10) - 1;
     const day = parseInt(parts[2], 10);
     
-    const date = new Date(year, month, day);
+    // Evita transbordamento criando o objeto no dia 1
+    const date = new Date(year, month, 1);
     date.setMonth(date.getMonth() + months);
+    
+    // Limita o dia ao máximo permitido no mês de destino (ex: 31/05 + 1 mês = 30/06)
+    const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const targetDay = Math.min(day, lastDayOfMonth);
+    date.setDate(targetDay);
     
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -961,8 +967,11 @@ window.showInstallmentsDrawer = function(transId) {
         item.className = 'installment-item-mobile';
         item.innerHTML = `
             <div>
-                <strong>Parcela ${inst.numeroParcela}/${trans.numParcelas}</strong><br>
-                <small class="text-muted">Vencimento: ${formatDate(inst.dataVencimento)}</small>
+                <strong>Parcela ${inst.numeroParcela}/${trans.numParcelas}</strong>
+                <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                    <span style="font-size: 11px; color: var(--text-secondary);">Venc:</span>
+                    <input type="date" value="${inst.dataVencimento}" onchange="changeInstallmentDate('${inst.id}', this.value)" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 11px; padding: 2px 6px; border-radius: 4px; font-family: inherit; outline: none; width: 115px;" />
+                </div>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="font-semibold">${formatCurrency(inst.valor)}</span>
@@ -983,6 +992,17 @@ window.toggleInstallmentStatus = function(instId) {
 
     install.status = install.status === 'pago' ? 'pendente' : 'pago';
     
+    saveStateToLocalStorage();
+    updateUI();
+    showInstallmentsDrawer(install.transacaoId);
+};
+
+window.changeInstallmentDate = function(instId, newDate) {
+    if (!newDate) return;
+    const install = state.installments.find(i => i.id === instId);
+    if (!install) return;
+    
+    install.dataVencimento = newDate;
     saveStateToLocalStorage();
     updateUI();
     showInstallmentsDrawer(install.transacaoId);
