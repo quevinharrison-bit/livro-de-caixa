@@ -25,6 +25,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Tela de Bloqueio por PIN -->
+    <div id="lock-screen" class="lock-screen-overlay" style="display: none;">
+        <div class="lock-screen-content">
+            <div class="lock-icon"><i class="fa-solid fa-lock"></i></div>
+            <h2>Finances<span class="highlight">IQ</span></h2>
+            <p class="lock-status-text" id="lock-status-text">Digite seu PIN de acesso</p>
+            
+            <div class="pin-display">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            
+            <div class="pin-keypad">
+                <button class="pin-btn" data-val="1">1</button>
+                <button class="pin-btn" data-val="2">2</button>
+                <button class="pin-btn" data-val="3">3</button>
+                <button class="pin-btn" data-val="4">4</button>
+                <button class="pin-btn" data-val="5">5</button>
+                <button class="pin-btn" data-val="6">6</button>
+                <button class="pin-btn" data-val="7">7</button>
+                <button class="pin-btn" data-val="8">8</button>
+                <button class="pin-btn" data-val="9">9</button>
+                <button class="pin-btn empty"></button>
+                <button class="pin-btn" data-val="0">0</button>
+                <button class="pin-btn delete" id="btn-pin-delete"><i class="fa-solid fa-backspace"></i></button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Top App Bar (Estilo Android) -->
         <header class="app-header">
@@ -33,6 +64,13 @@
                 <span>Finances<span class="highlight">IQ</span></span>
             </div>
             <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
+                <!-- Seletor de Perfis/Fluxos -->
+                <select id="header-profile-select" style="padding: 4px 8px; font-size: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-primary); max-width: 100px; outline: none; height: 28px;">
+                    <!-- Preenchido por JS -->
+                </select>
+                <button class="btn-action" title="Gerenciar Fluxos" id="btn-manage-profiles" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                    <i class="fa-solid fa-folder-tree"></i>
+                </button>
                 <button class="btn-action delete" title="Resetar Dados" id="btn-reset-db" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
                     <i class="fa-solid fa-rotate-left"></i>
                 </button>
@@ -141,6 +179,32 @@
                             </div>
                             <div class="ranking-list" id="ranking-list-items">
                                 <!-- Preenchido por JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configurações e Segurança -->
+                    <div class="glass-card settings-container" style="margin-bottom: 24px;">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-shield-halved"></i> Segurança e Bloqueio</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Bloqueio por Senha (PIN)</span>
+                                <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                                    <input type="checkbox" id="settings-pin-toggle" style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); border: 1px solid var(--border-color); transition: .3s; border-radius: 22px;"></span>
+                                </label>
+                            </div>
+                            
+                            <!-- Opções expandidas de PIN -->
+                            <div id="settings-pin-options" style="display: none; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 4px; flex-direction: column; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                    <span>Alterar Senha de Acesso</span>
+                                    <button class="btn-primary" id="btn-change-pin" style="margin-top: 0; padding: 4px 10px; font-size: 11px;">
+                                        <i class="fa-solid fa-key"></i> Mudar PIN
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -322,6 +386,34 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Modal de Gerenciamento de Perfis/Fluxos -->
+            <div id="profile-modal" class="modal-overlay" style="display: none;">
+                <div class="modal-content glass-card">
+                    <div class="modal-header">
+                        <h3><i class="fa-solid fa-folder-tree"></i> Gerenciar Fluxos</h3>
+                        <button class="btn-close" id="close-profile-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                        <form id="create-profile-form" class="responsive-form" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 8px;">
+                            <div class="form-group">
+                                <label for="new-profile-name">Nome do Novo Fluxo de Caixa</label>
+                                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                                    <input type="text" id="new-profile-name" placeholder="Ex: Contas Pessoais" required style="flex-grow: 1;">
+                                    <button type="submit" class="btn-primary" style="margin-top: 0; padding: 8px 12px;"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <div>
+                            <h4 style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary);">Fluxos Existentes</h4>
+                            <div id="profiles-list-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                                <!-- Preenchido dinamicamente por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- ABA: FECHAMENTO MENSAL / FATURA -->
             <section id="monthly-report" class="tab-pane">
