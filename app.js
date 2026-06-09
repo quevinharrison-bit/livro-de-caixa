@@ -138,6 +138,18 @@ function initApp() {
     document.getElementById('current-date-span').innerText = formatDate(SYSTEM_TODAY);
     document.getElementById('trans-date').value = SYSTEM_TODAY;
     
+    // Verificar se há dados antigos para mostrar o banner de restauração
+    const oldProducts = localStorage.getItem('financeiq_products');
+    const oldTransactions = localStorage.getItem('financeiq_transactions');
+    const restoreBanner = document.getElementById('restore-banner');
+    if (restoreBanner) {
+        if (oldProducts || oldTransactions) {
+            restoreBanner.style.display = 'flex';
+        } else {
+            restoreBanner.style.display = 'none';
+        }
+    }
+    
     const storedProfiles = localStorage.getItem('financeiq_profiles');
     const storedActiveProfile = localStorage.getItem('financeiq_active_profile');
     
@@ -1762,3 +1774,25 @@ function initSecurityPinToggle(hasPin) {
         optionsDiv.style.display = hasPin ? 'flex' : 'none';
     }
 }
+
+window.manualMigrateOldData = function() {
+    const oldProducts = localStorage.getItem('financeiq_products');
+    const oldTransactions = localStorage.getItem('financeiq_transactions');
+    const oldInstallments = localStorage.getItem('financeiq_installments');
+    
+    if (oldProducts || oldTransactions || oldInstallments) {
+        state.products = oldProducts ? JSON.parse(oldProducts) : [];
+        state.transactions = oldTransactions ? JSON.parse(oldTransactions) : [];
+        state.installments = oldInstallments ? JSON.parse(oldInstallments) : [];
+        
+        saveStateToLocalStorage();
+        updateUI();
+        
+        const banner = document.getElementById('restore-banner');
+        if (banner) banner.style.display = 'none';
+        
+        alert('Seus dados antigos foram restaurados com sucesso no fluxo padrão!');
+    } else {
+        alert('Nenhum dado antigo foi encontrado no armazenamento deste navegador.');
+    }
+};

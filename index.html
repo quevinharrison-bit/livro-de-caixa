@@ -25,6 +25,14 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Banner de Restauração de Dados -->
+    <div id="restore-banner" style="display: none; background: #eab308; color: #0b0f19; padding: 12px; text-align: center; font-size: 13px; font-weight: 700; z-index: 1100; position: relative; align-items: center; justify-content: center; gap: 12px; border-bottom: 2px solid #ca8a04;">
+        <span><i class="fa-solid fa-triangle-exclamation"></i> Encontramos dados antigos não migrados! Deseja restaurá-los?</span>
+        <button onclick="manualMigrateOldData()" style="background: #0b0f19; color: #ffffff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; outline: none;">
+            Restaurar Meus Dados
+        </button>
+    </div>
+
     <!-- Tela de Bloqueio por PIN -->
     <div id="lock-screen" class="lock-screen-overlay" style="display: none;">
         <div class="lock-screen-content">
