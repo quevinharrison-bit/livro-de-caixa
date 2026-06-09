@@ -962,7 +962,7 @@ input[type="range"]::-webkit-slider-thumb {
         background: #ffffff !important;
         color: #000000 !important;
     }
-    .app-header, .bottom-nav, .fab, #btn-print-report, .btn-action, .filter-container, #monthly-select-period, .bottom-sheet-drag-handle, .sheet-backdrop {
+    .app-header, .bottom-nav, .fab, #btn-print-report, .btn-action, .filter-container, #monthly-select-period, .bottom-sheet-drag-handle, .sheet-backdrop, .lock-screen-overlay, #pin-modal {
         display: none !important;
     }
     .app-container {
@@ -1013,4 +1013,165 @@ input[type="range"]::-webkit-slider-thumb {
         color: #ef6c00 !important;
         border: 1px solid #ffe0b2 !important;
     }
+}
+
+/* Security PIN Lock Screen & Keyboard Styles */
+.lock-screen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(11, 15, 25, 0.85);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn var(--transition-normal);
+}
+
+.lock-screen-overlay.slide-up {
+    animation: slideOutUp 0.4s cubic-bezier(0.1, 0.76, 0.55, 0.94) forwards;
+}
+
+@keyframes slideOutUp {
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.lock-screen-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    padding: 20px;
+}
+
+.lock-screen-content h2 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.lock-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--color-primary);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-glow);
+}
+
+.lock-pulse {
+    animation: lockPulse 2s infinite alternate;
+}
+
+@keyframes lockPulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0, 242, 254, 0.3)); }
+    100% { transform: scale(1.08); filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.6)); }
+}
+
+.unlock-animation {
+    animation: unlockScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes unlockScale {
+    0% { transform: scale(0.6); }
+    100% { transform: scale(1.1); color: var(--color-green); }
+}
+
+.pin-dots {
+    display: flex;
+    gap: 18px;
+    margin: 28px 0;
+}
+
+.pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.15s ease;
+}
+
+.pin-dot.filled {
+    background: var(--color-accent-grad);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.pin-dots.shake {
+    animation: shake 0.35s ease-in-out;
+}
+
+.pin-dot.error {
+    background: var(--color-red);
+    border-color: var(--color-red);
+    box-shadow: 0 0 8px var(--color-red);
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+.pin-keyboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    justify-items: center;
+    width: 100%;
+    max-width: 260px;
+    margin-top: 10px;
+}
+
+.pin-key {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+}
+
+.pin-key:active {
+    background: rgba(0, 242, 254, 0.12);
+    border-color: var(--color-primary);
+    transform: scale(0.92);
+}
+
+.pin-key.action-key {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+}
+
+.pin-key.action-key:active {
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    transform: scale(0.92);
 }

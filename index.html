@@ -25,6 +25,40 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Tela de Bloqueio (Lock Screen PIN) -->
+    <div id="lock-screen" class="lock-screen-overlay" style="display: none;">
+        <div class="lock-screen-content">
+            <div class="lock-icon-wrapper">
+                <i class="fa-solid fa-lock-open unlock-icon" style="display: none;"></i>
+                <i class="fa-solid fa-lock lock-icon"></i>
+            </div>
+            <h2>Finances<span class="highlight">IQ</span></h2>
+            <p id="lock-screen-title">Digite seu PIN para desbloquear</p>
+            
+            <div class="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            
+            <div class="pin-keyboard">
+                <button class="pin-key" data-val="1">1</button>
+                <button class="pin-key" data-val="2">2</button>
+                <button class="pin-key" data-val="3">3</button>
+                <button class="pin-key" data-val="4">4</button>
+                <button class="pin-key" data-val="5">5</button>
+                <button class="pin-key" data-val="6">6</button>
+                <button class="pin-key" data-val="7">7</button>
+                <button class="pin-key" data-val="8">8</button>
+                <button class="pin-key" data-val="9">9</button>
+                <button class="pin-key action-key" id="pin-clear" title="Limpar"><i class="fa-solid fa-trash-can"></i></button>
+                <button class="pin-key" data-val="0">0</button>
+                <button class="pin-key action-key" id="pin-backspace" title="Apagar"><i class="fa-solid fa-delete-left"></i></button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Top App Bar (Estilo Android) -->
         <header class="app-header">
@@ -43,6 +77,9 @@
                     <i class="fa-solid fa-upload"></i>
                 </button>
                 <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                <button class="btn-action" title="Segurança (PIN)" id="btn-config-pin" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                    <i class="fa-solid fa-key"></i>
+                </button>
                 <span class="date-badge"><span id="current-date-span">04/06/2026</span></span>
             </div>
         </header>
@@ -513,6 +550,41 @@
             <div class="bottom-sheet-content">
                 <div class="installments-list-mobile" id="installments-list-mobile">
                     <!-- Parcelas dinâmicas -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Configuração de PIN/Senha -->
+        <div id="pin-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-key"></i> Configurar PIN</h3>
+                    <button class="btn-close" id="close-pin-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="responsive-form" style="display: flex; flex-direction: column; gap: 12px;">
+                    <p style="font-size: 13px; color: var(--text-secondary);" id="pin-modal-desc">
+                        Cadastre um PIN numérico de 4 dígitos para proteger o acesso aos seus dados financeiros neste dispositivo.
+                    </p>
+                    
+                    <div class="form-group" id="pin-current-group" style="display: none;">
+                        <label for="pin-current">PIN Atual</label>
+                        <input type="password" id="pin-current" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" style="text-align: center; font-size: 20px; letter-spacing: 12px; padding: 8px;">
+                    </div>
+                    
+                    <div class="form-group" id="pin-new-group">
+                        <label for="pin-new" id="pin-new-label">Novo PIN (4 dígitos)</label>
+                        <input type="password" id="pin-new" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" style="text-align: center; font-size: 20px; letter-spacing: 12px; padding: 8px;">
+                    </div>
+                    
+                    <div class="form-group" id="pin-confirm-group">
+                        <label for="pin-confirm">Confirmar Novo PIN</label>
+                        <input type="password" id="pin-confirm" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" style="text-align: center; font-size: 20px; letter-spacing: 12px; padding: 8px;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button id="btn-save-pin" class="btn-primary" style="flex: 1; margin-top: 0;"><i class="fa-solid fa-shield-halved"></i> Salvar PIN</button>
+                        <button id="btn-disable-pin" class="btn-primary delete" style="display: none; margin-top: 0;"><i class="fa-solid fa-shield-slash"></i> Desativar</button>
+                    </div>
                 </div>
             </div>
         </div>
