@@ -569,7 +569,6 @@ function setupEventListeners() {
             }
         });
     }
-}
 
 function switchTab(tabId) {
     state.currentTab = tabId;
