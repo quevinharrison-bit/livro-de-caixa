@@ -7,9 +7,7 @@ let state = {
     transactions: [],
     installments: [],
     currentTab: 'dashboard',
-    activeRankTab: 'revenue',
-    profiles: [],
-    currentProfile: 'default'
+    activeRankTab: 'revenue'
 };
 
 // ID da transação em modo de edição (null se for nova transação)
@@ -132,60 +130,51 @@ function registerServiceWorker() {
 }
 
 function initApp() {
-    const savedPin = localStorage.getItem('financeiq_lock_pin');
-    const hasPin = !!savedPin;
-
     document.getElementById('current-date-span').innerText = formatDate(SYSTEM_TODAY);
     document.getElementById('trans-date').value = SYSTEM_TODAY;
     
-    // Verificar se há dados antigos para mostrar o banner de restauração
-    const oldProducts = localStorage.getItem('financeiq_products');
-    const oldTransactions = localStorage.getItem('financeiq_transactions');
-    const restoreBanner = document.getElementById('restore-banner');
-    if (restoreBanner) {
-        if (oldProducts || oldTransactions) {
-            restoreBanner.style.display = 'flex';
-        } else {
-            restoreBanner.style.display = 'none';
-        }
-    }
-    
-    const storedProfiles = localStorage.getItem('financeiq_profiles');
-    const storedActiveProfile = localStorage.getItem('financeiq_active_profile');
-    
-    if (storedProfiles) {
-        state.profiles = JSON.parse(storedProfiles);
+    const storedProducts = localStorage.getItem('financeiq_products');
+    const storedTransactions = localStorage.getItem('financeiq_transactions');
+    const storedInstallments = localStorage.getItem('financeiq_installments');
+
+    if (storedProducts && storedTransactions && storedInstallments) {
+        state.products = JSON.parse(storedProducts);
+        state.transactions = JSON.parse(storedTransactions);
+        state.installments = JSON.parse(storedInstallments);
     } else {
-        state.profiles = [{ id: 'default', name: 'Fluxo Padrão' }];
-        localStorage.setItem('financeiq_profiles', JSON.stringify(state.profiles));
+        state.products = seedProducts;
+        state.transactions = seedTransactions;
+        state.installments = [];
+        
+        state.transactions.forEach(trans => {
+            const generated = generateInstallments(trans);
+            
+            if (trans.id === 't3') {
+                generated[0].status = 'pago';
+                generated[1].status = 'pago'; 
+                generated[2].status = 'pendente';
+            } else if (trans.id === 't4') {
+                generated[0].status = 'pago';
+                generated[1].status = 'pago';
+                generated[2].status = 'pendente';
+                generated[3].status = 'pendente';
+                generated[4].status = 'pendente';
+                generated[5].status = 'pendente';
+            }
+            
+            state.installments.push(...generated);
+        });
+        
+        saveStateToLocalStorage();
     }
-    
-    if (storedActiveProfile && state.profiles.some(p => p.id === storedActiveProfile)) {
-        state.currentProfile = storedActiveProfile;
-    } else {
-        state.currentProfile = 'default';
-        localStorage.setItem('financeiq_active_profile', 'default');
-    }
-    
-    loadProfileData(state.currentProfile);
-    initSecurityPinToggle(hasPin);
-    
-    if (hasPin) {
-        document.getElementById('lock-screen').style.display = 'flex';
-        setupPinLockKeyboard(savedPin);
-    } else {
-        document.getElementById('lock-screen').style.display = 'none';
-    }
+    populateMonthlyReportPeriodSelector();
 }
 
 // --- PERSISTÊNCIA ---
 function saveStateToLocalStorage() {
-    const profileId = state.currentProfile || 'default';
-    localStorage.setItem(`financeiq_products_${profileId}`, JSON.stringify(state.products));
-    localStorage.setItem(`financeiq_transactions_${profileId}`, JSON.stringify(state.transactions));
-    localStorage.setItem(`financeiq_installments_${profileId}`, JSON.stringify(state.installments));
-    localStorage.setItem('financeiq_profiles', JSON.stringify(state.profiles));
-    localStorage.setItem('financeiq_active_profile', profileId);
+    localStorage.setItem('financeiq_products', JSON.stringify(state.products));
+    localStorage.setItem('financeiq_transactions', JSON.stringify(state.transactions));
+    localStorage.setItem('financeiq_installments', JSON.stringify(state.installments));
 }
 
 // --- DATA & FORMATADORES ---
@@ -447,13 +436,12 @@ function setupEventListeners() {
         const backupData = {
             products: state.products,
             transactions: state.transactions,
-            installments: state.installments,
-            profileName: state.profiles.find(p => p.id === state.currentProfile)?.name || 'Fluxo'
+            installments: state.installments
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
         const downloadAnchor = document.createElement('a');
         downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `financesiq_${state.currentProfile}_backup_${Date.now()}.json`);
+        downloadAnchor.setAttribute("download", `financesiq_backup_${Date.now()}.json`);
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
@@ -490,118 +478,22 @@ function setupEventListeners() {
     });
 
     // Botão de reset de dados
-    const btnResetDb = document.getElementById('btn-reset-db');
-    if (btnResetDb) {
-        btnResetDb.addEventListener('click', () => {
-            if (confirm('Tem certeza de que deseja resetar todo o banco de dados deste fluxo para os valores padrão? Todos os seus lançamentos personalizados dele serão apagados.')) {
-                resetDatabase();
-            }
-        });
-    }
+    document.getElementById('btn-reset-db').addEventListener('click', () => {
+        if (confirm('Tem certeza de que deseja resetar todo o banco de dados para os valores padrão? Todos os seus lançamentos personalizados serão apagados.')) {
+            resetDatabase();
+        }
+    });
 
     // Botão de imprimir PDF
-    const btnPrintReport = document.getElementById('btn-print-report');
-    if (btnPrintReport) {
-        btnPrintReport.addEventListener('click', () => {
-            window.print();
-        });
-    }
+    document.getElementById('btn-print-report').addEventListener('click', () => {
+        window.print();
+    });
 
     // Seletor de período mensal
-    const monthlySelectPeriod = document.getElementById('monthly-select-period');
-    if (monthlySelectPeriod) {
-        monthlySelectPeriod.addEventListener('change', () => {
-            renderMonthlyReport();
-        });
-    }
-
-    // --- SELETOR DE PERFIL DE FLUXO ---
-    const headerProfileSelect = document.getElementById('header-profile-select');
-    if (headerProfileSelect) {
-        headerProfileSelect.addEventListener('change', (e) => {
-            switchProfile(e.target.value);
-        });
-    }
-
-    // Modais e criação de novos perfis
-    const profileModal = document.getElementById('profile-modal');
-    const btnManageProfiles = document.getElementById('btn-manage-profiles');
-    if (btnManageProfiles && profileModal) {
-        btnManageProfiles.addEventListener('click', () => {
-            populateProfileSelectors();
-            profileModal.style.display = 'flex';
-        });
-    }
-    
-    const closeProfileModalBtn = document.getElementById('close-profile-modal-btn');
-    if (closeProfileModalBtn && profileModal) {
-        closeProfileModalBtn.addEventListener('click', () => {
-            profileModal.style.display = 'none';
-        });
-    }
-    
-    const createProfileForm = document.getElementById('create-profile-form');
-    if (createProfileForm && profileModal) {
-        createProfileForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newNameInput = document.getElementById('new-profile-name');
-            const name = newNameInput ? newNameInput.value.trim() : '';
-            if (name) {
-                createNewProfile(name);
-                newNameInput.value = '';
-                profileModal.style.display = 'none';
-            }
-        });
-    }
-
-    // --- CONTROLES DE SEGURANÇA E PIN ---
-    const pinToggle = document.getElementById('settings-pin-toggle');
-    const pinOptions = document.getElementById('settings-pin-options');
-    
-    if (pinToggle && pinOptions) {
-        pinToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                const pin = prompt('Defina um PIN numérico de 4 dígitos para acesso:');
-                if (pin && /^\d{4}$/.test(pin)) {
-                    localStorage.setItem('financeiq_lock_pin', pin);
-                    pinOptions.style.display = 'flex';
-                    alert('Bloqueio por PIN ativado com sucesso!');
-                } else {
-                    alert('PIN inválido! Deve conter exatamente 4 dígitos numéricos.');
-                    e.target.checked = false;
-                }
-            } else {
-                const confirmDisable = confirm('Deseja desativar a senha de acesso por PIN?');
-                if (confirmDisable) {
-                    localStorage.removeItem('financeiq_lock_pin');
-                    pinOptions.style.display = 'none';
-                    alert('Bloqueio por PIN desativado.');
-                } else {
-                    e.target.checked = true;
-                }
-            }
-        });
-    }
-    
-    const btnChangePin = document.getElementById('btn-change-pin');
-    if (btnChangePin) {
-        btnChangePin.addEventListener('click', () => {
-            const currentSaved = localStorage.getItem('financeiq_lock_pin');
-            const oldPin = prompt('Digite o seu PIN atual:');
-            if (oldPin !== currentSaved) {
-                alert('PIN atual incorreto!');
-                return;
-            }
-            
-            const newPin = prompt('Digite o seu NOVO PIN de 4 dígitos:');
-            if (newPin && /^\d{4}$/.test(newPin)) {
-                localStorage.setItem('financeiq_lock_pin', newPin);
-                alert('PIN alterado com sucesso!');
-            } else {
-                alert('PIN inválido! Deve conter exatamente 4 dígitos numéricos.');
-            }
-        });
-    }
+    document.getElementById('monthly-select-period').addEventListener('change', () => {
+        renderMonthlyReport();
+    });
+}
 
 function switchTab(tabId) {
     state.currentTab = tabId;
@@ -640,7 +532,6 @@ function updateUI() {
     renderFilterSummary(); // Atualiza o resumo de fluxo do período filtrado
     renderMonthlyReport();
     renderCategoryChart();
-    populateProfileSelectors();
 }
 
 // Função auxiliar para verificar se uma data corresponde aos filtros de período ativos
@@ -1322,18 +1213,40 @@ function populateMonthlyReportPeriodSelector() {
 }
 
 function resetDatabase() {
-    const profileId = state.currentProfile || 'default';
-    localStorage.removeItem(`financeiq_products_${profileId}`);
-    localStorage.removeItem(`financeiq_transactions_${profileId}`);
-    localStorage.removeItem(`financeiq_installments_${profileId}`);
+    localStorage.clear();
+    state.products = [...seedProducts];
+    state.transactions = [...seedTransactions];
+    state.installments = [];
     
-    loadProfileData(profileId);
+    state.transactions.forEach(trans => {
+        const generated = generateInstallments(trans);
+        
+        if (trans.id === 't3') {
+            generated[0].status = 'pago';
+            generated[1].status = 'pago'; 
+            generated[2].status = 'pendente';
+        } else if (trans.id === 't4') {
+            generated[0].status = 'pago';
+            generated[1].status = 'pago';
+            generated[2].status = 'pendente';
+            generated[3].status = 'pendente';
+            generated[4].status = 'pendente';
+            generated[5].status = 'pendente';
+        }
+        
+        state.installments.push(...generated);
+    });
+    
+    saveStateToLocalStorage();
     
     // Voltar para a aba principal (dashboard)
     switchTab('dashboard');
     
+    // Resetar seletor mensal
+    populateMonthlyReportPeriodSelector();
+    
     updateUI();
-    alert('Banco de dados deste fluxo resetado com sucesso!');
+    alert('Banco de dados resetado com sucesso!');
 }
 
 function renderCategoryChart() {
@@ -1552,247 +1465,4 @@ window.toggleMonthlyInstallmentStatus = function(instId) {
     
     saveStateToLocalStorage();
     updateUI();
-};
-
-// --- CONTROLES DE MÚLTIPLOS FLUXOS E SEGURANÇA POR PIN ---
-
-function loadProfileData(profileId) {
-    const storedProducts = localStorage.getItem(`financeiq_products_${profileId}`);
-    const storedTransactions = localStorage.getItem(`financeiq_transactions_${profileId}`);
-    const storedInstallments = localStorage.getItem(`financeiq_installments_${profileId}`);
-
-    if (storedProducts && storedTransactions && storedInstallments) {
-        state.products = JSON.parse(storedProducts);
-        state.transactions = JSON.parse(storedTransactions);
-        state.installments = JSON.parse(storedInstallments);
-    } else {
-        // Tentar migrar dados antigos sem sufixo de perfil
-        const oldProducts = localStorage.getItem('financeiq_products');
-        const oldTransactions = localStorage.getItem('financeiq_transactions');
-        const oldInstallments = localStorage.getItem('financeiq_installments');
-        
-        if (profileId === 'default' && oldProducts && oldTransactions && oldInstallments) {
-            state.products = JSON.parse(oldProducts);
-            state.transactions = JSON.parse(oldTransactions);
-            state.installments = JSON.parse(oldInstallments);
-            saveStateToLocalStorage(); // Salva sob as novas chaves com sufixo
-        } else if (profileId === 'default') {
-            state.products = seedProducts;
-            state.transactions = seedTransactions;
-            state.installments = [];
-            
-            state.transactions.forEach(trans => {
-                const generated = generateInstallments(trans);
-                
-                if (trans.id === 't3') {
-                    generated[0].status = 'pago';
-                    generated[1].status = 'pago'; 
-                    generated[2].status = 'pendente';
-                } else if (trans.id === 't4') {
-                    generated[0].status = 'pago';
-                    generated[1].status = 'pago';
-                    generated[2].status = 'pendente';
-                    generated[3].status = 'pendente';
-                    generated[4].status = 'pendente';
-                    generated[5].status = 'pendente';
-                }
-                
-                state.installments.push(...generated);
-            });
-            
-            saveStateToLocalStorage();
-        } else {
-            state.products = [];
-            state.transactions = [];
-            state.installments = [];
-        }
-    }
-    
-    populateMonthlyReportPeriodSelector();
-}
-
-function populateProfileSelectors() {
-    const headerSelect = document.getElementById('header-profile-select');
-    const modalListContainer = document.getElementById('profiles-list-container');
-    
-    if (headerSelect) {
-        headerSelect.innerHTML = '';
-        state.profiles.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.innerText = p.name;
-            if (p.id === state.currentProfile) {
-                opt.selected = true;
-            }
-            headerSelect.appendChild(opt);
-        });
-    }
-    
-    if (modalListContainer) {
-        modalListContainer.innerHTML = '';
-        state.profiles.forEach(p => {
-            const row = document.createElement('div');
-            row.className = 'profile-item-row';
-            
-            const deleteBtn = p.id === 'default'
-                ? ''
-                : `<button class="btn-action delete" title="Excluir" onclick="deleteProfile('${p.id}')"><i class="fa-solid fa-trash"></i></button>`;
-                
-            row.innerHTML = `
-                <span class="profile-item-name">${p.name}</span>
-                <div class="profile-item-actions">
-                    ${deleteBtn}
-                </div>
-            `;
-            modalListContainer.appendChild(row);
-        });
-    }
-}
-
-window.switchProfile = function(profileId) {
-    if (!state.profiles.some(p => p.id === profileId)) return;
-    state.currentProfile = profileId;
-    localStorage.setItem('financeiq_active_profile', profileId);
-    
-    loadProfileData(profileId);
-    updateUI();
-};
-
-function createNewProfile(name) {
-    const id = 'p-' + Date.now();
-    state.profiles.push({ id, name });
-    saveStateToLocalStorage();
-    populateProfileSelectors();
-    switchProfile(id);
-    alert(`Novo fluxo "${name}" criado e ativo!`);
-}
-
-window.deleteProfile = function(profileId) {
-    if (profileId === 'default') return;
-    if (!confirm('Tem certeza de que deseja excluir este fluxo? Todos os lançamentos e produtos deste perfil serão permanentemente apagados.')) return;
-    
-    state.profiles = state.profiles.filter(p => p.id !== profileId);
-    
-    localStorage.removeItem(`financeiq_products_${profileId}`);
-    localStorage.removeItem(`financeiq_transactions_${profileId}`);
-    localStorage.removeItem(`financeiq_installments_${profileId}`);
-    
-    if (state.currentProfile === profileId) {
-        state.currentProfile = 'default';
-        localStorage.setItem('financeiq_active_profile', 'default');
-    }
-    
-    saveStateToLocalStorage();
-    loadProfileData(state.currentProfile);
-    populateProfileSelectors();
-    updateUI();
-};
-
-let currentPinAttempt = '';
-
-function setupPinLockKeyboard(savedPin) {
-    currentPinAttempt = '';
-    updatePinDots();
-    
-    const statusText = document.getElementById('lock-status-text');
-    if (statusText) {
-        statusText.innerText = 'Digite seu PIN de acesso';
-        statusText.style.color = 'var(--text-secondary)';
-    }
-    
-    const keypad = document.querySelector('.pin-keypad');
-    if (!keypad) return;
-    
-    const newKeypad = keypad.cloneNode(true);
-    keypad.parentNode.replaceChild(newKeypad, keypad);
-    
-    newKeypad.querySelectorAll('.pin-btn[data-val]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const val = btn.getAttribute('data-val');
-            if (currentPinAttempt.length < 4) {
-                currentPinAttempt += val;
-                updatePinDots();
-                
-                if (currentPinAttempt.length === 4) {
-                    setTimeout(() => {
-                        if (currentPinAttempt === savedPin) {
-                            const lockScreen = document.getElementById('lock-screen');
-                            if (lockScreen) lockScreen.style.display = 'none';
-                        } else {
-                            shakePinDots();
-                            if (statusText) {
-                                statusText.innerText = 'PIN incorreto. Tente novamente.';
-                                statusText.style.color = 'var(--color-red)';
-                            }
-                            currentPinAttempt = '';
-                            setTimeout(() => {
-                                updatePinDots();
-                            }, 500);
-                        }
-                    }, 150);
-                }
-            }
-        });
-    });
-    
-    const delBtn = newKeypad.querySelector('#btn-pin-delete');
-    if (delBtn) {
-        delBtn.addEventListener('click', () => {
-            if (currentPinAttempt.length > 0) {
-                currentPinAttempt = currentPinAttempt.slice(0, -1);
-                updatePinDots();
-            }
-        });
-    }
-}
-
-function updatePinDots() {
-    const dots = document.querySelectorAll('.pin-display .pin-dot');
-    dots.forEach((dot, index) => {
-        if (index < currentPinAttempt.length) {
-            dot.classList.add('filled');
-        } else {
-            dot.classList.remove('filled');
-        }
-        dot.classList.remove('error');
-    });
-}
-
-function shakePinDots() {
-    const dots = document.querySelectorAll('.pin-display .pin-dot');
-    dots.forEach(dot => {
-        dot.classList.add('error');
-    });
-}
-
-function initSecurityPinToggle(hasPin) {
-    const toggle = document.getElementById('settings-pin-toggle');
-    const optionsDiv = document.getElementById('settings-pin-options');
-    
-    if (toggle) {
-        toggle.checked = hasPin;
-        optionsDiv.style.display = hasPin ? 'flex' : 'none';
-    }
-}
-
-window.manualMigrateOldData = function() {
-    const oldProducts = localStorage.getItem('financeiq_products');
-    const oldTransactions = localStorage.getItem('financeiq_transactions');
-    const oldInstallments = localStorage.getItem('financeiq_installments');
-    
-    if (oldProducts || oldTransactions || oldInstallments) {
-        state.products = oldProducts ? JSON.parse(oldProducts) : [];
-        state.transactions = oldTransactions ? JSON.parse(oldTransactions) : [];
-        state.installments = oldInstallments ? JSON.parse(oldInstallments) : [];
-        
-        saveStateToLocalStorage();
-        updateUI();
-        
-        const banner = document.getElementById('restore-banner');
-        if (banner) banner.style.display = 'none';
-        
-        alert('Seus dados antigos foram restaurados com sucesso no fluxo padrão!');
-    } else {
-        alert('Nenhum dado antigo foi encontrado no armazenamento deste navegador.');
-    }
 };
