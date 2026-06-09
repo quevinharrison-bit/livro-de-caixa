@@ -478,54 +478,75 @@ function setupEventListeners() {
     });
 
     // Botão de reset de dados
-    document.getElementById('btn-reset-db').addEventListener('click', () => {
-        if (confirm('Tem certeza de que deseja resetar todo o banco de dados deste fluxo para os valores padrão? Todos os seus lançamentos personalizados dele serão apagados.')) {
-            resetDatabase();
-        }
-    });
+    const btnResetDb = document.getElementById('btn-reset-db');
+    if (btnResetDb) {
+        btnResetDb.addEventListener('click', () => {
+            if (confirm('Tem certeza de que deseja resetar todo o banco de dados deste fluxo para os valores padrão? Todos os seus lançamentos personalizados dele serão apagados.')) {
+                resetDatabase();
+            }
+        });
+    }
 
     // Botão de imprimir PDF
-    document.getElementById('btn-print-report').addEventListener('click', () => {
-        window.print();
-    });
+    const btnPrintReport = document.getElementById('btn-print-report');
+    if (btnPrintReport) {
+        btnPrintReport.addEventListener('click', () => {
+            window.print();
+        });
+    }
 
     // Seletor de período mensal
-    document.getElementById('monthly-select-period').addEventListener('change', () => {
-        renderMonthlyReport();
-    });
+    const monthlySelectPeriod = document.getElementById('monthly-select-period');
+    if (monthlySelectPeriod) {
+        monthlySelectPeriod.addEventListener('change', () => {
+            renderMonthlyReport();
+        });
+    }
 
     // --- SELETOR DE PERFIL DE FLUXO ---
-    document.getElementById('header-profile-select').addEventListener('change', (e) => {
-        switchProfile(e.target.value);
-    });
+    const headerProfileSelect = document.getElementById('header-profile-select');
+    if (headerProfileSelect) {
+        headerProfileSelect.addEventListener('change', (e) => {
+            switchProfile(e.target.value);
+        });
+    }
 
     // Modais e criação de novos perfis
     const profileModal = document.getElementById('profile-modal');
-    document.getElementById('btn-manage-profiles').addEventListener('click', () => {
-        populateProfileSelectors();
-        profileModal.style.display = 'flex';
-    });
+    const btnManageProfiles = document.getElementById('btn-manage-profiles');
+    if (btnManageProfiles && profileModal) {
+        btnManageProfiles.addEventListener('click', () => {
+            populateProfileSelectors();
+            profileModal.style.display = 'flex';
+        });
+    }
     
-    document.getElementById('close-profile-modal-btn').addEventListener('click', () => {
-        profileModal.style.display = 'none';
-    });
-    
-    document.getElementById('create-profile-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const newNameInput = document.getElementById('new-profile-name');
-        const name = newNameInput.value.trim();
-        if (name) {
-            createNewProfile(name);
-            newNameInput.value = '';
+    const closeProfileModalBtn = document.getElementById('close-profile-modal-btn');
+    if (closeProfileModalBtn && profileModal) {
+        closeProfileModalBtn.addEventListener('click', () => {
             profileModal.style.display = 'none';
-        }
-    });
+        });
+    }
+    
+    const createProfileForm = document.getElementById('create-profile-form');
+    if (createProfileForm && profileModal) {
+        createProfileForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newNameInput = document.getElementById('new-profile-name');
+            const name = newNameInput ? newNameInput.value.trim() : '';
+            if (name) {
+                createNewProfile(name);
+                newNameInput.value = '';
+                profileModal.style.display = 'none';
+            }
+        });
+    }
 
     // --- CONTROLES DE SEGURANÇA E PIN ---
     const pinToggle = document.getElementById('settings-pin-toggle');
     const pinOptions = document.getElementById('settings-pin-options');
     
-    if (pinToggle) {
+    if (pinToggle && pinOptions) {
         pinToggle.addEventListener('change', (e) => {
             if (e.target.checked) {
                 const pin = prompt('Defina um PIN numérico de 4 dígitos para acesso:');
@@ -1533,7 +1554,17 @@ function loadProfileData(profileId) {
         state.transactions = JSON.parse(storedTransactions);
         state.installments = JSON.parse(storedInstallments);
     } else {
-        if (profileId === 'default') {
+        // Tentar migrar dados antigos sem sufixo de perfil
+        const oldProducts = localStorage.getItem('financeiq_products');
+        const oldTransactions = localStorage.getItem('financeiq_transactions');
+        const oldInstallments = localStorage.getItem('financeiq_installments');
+        
+        if (profileId === 'default' && oldProducts && oldTransactions && oldInstallments) {
+            state.products = JSON.parse(oldProducts);
+            state.transactions = JSON.parse(oldTransactions);
+            state.installments = JSON.parse(oldInstallments);
+            saveStateToLocalStorage(); // Salva sob as novas chaves com sufixo
+        } else if (profileId === 'default') {
             state.products = seedProducts;
             state.transactions = seedTransactions;
             state.installments = [];
@@ -1556,13 +1587,13 @@ function loadProfileData(profileId) {
                 
                 state.installments.push(...generated);
             });
+            
+            saveStateToLocalStorage();
         } else {
             state.products = [];
             state.transactions = [];
             state.installments = [];
         }
-        
-        saveStateToLocalStorage();
     }
     
     populateMonthlyReportPeriodSelector();
@@ -1652,10 +1683,14 @@ function setupPinLockKeyboard(savedPin) {
     updatePinDots();
     
     const statusText = document.getElementById('lock-status-text');
-    statusText.innerText = 'Digite seu PIN de acesso';
-    statusText.style.color = 'var(--text-secondary)';
+    if (statusText) {
+        statusText.innerText = 'Digite seu PIN de acesso';
+        statusText.style.color = 'var(--text-secondary)';
+    }
     
     const keypad = document.querySelector('.pin-keypad');
+    if (!keypad) return;
+    
     const newKeypad = keypad.cloneNode(true);
     keypad.parentNode.replaceChild(newKeypad, keypad);
     
@@ -1669,11 +1704,14 @@ function setupPinLockKeyboard(savedPin) {
                 if (currentPinAttempt.length === 4) {
                     setTimeout(() => {
                         if (currentPinAttempt === savedPin) {
-                            document.getElementById('lock-screen').style.display = 'none';
+                            const lockScreen = document.getElementById('lock-screen');
+                            if (lockScreen) lockScreen.style.display = 'none';
                         } else {
                             shakePinDots();
-                            statusText.innerText = 'PIN incorreto. Tente novamente.';
-                            statusText.style.color = 'var(--color-red)';
+                            if (statusText) {
+                                statusText.innerText = 'PIN incorreto. Tente novamente.';
+                                statusText.style.color = 'var(--color-red)';
+                            }
                             currentPinAttempt = '';
                             setTimeout(() => {
                                 updatePinDots();
@@ -1685,12 +1723,15 @@ function setupPinLockKeyboard(savedPin) {
         });
     });
     
-    newKeypad.querySelector('#btn-pin-delete').addEventListener('click', () => {
-        if (currentPinAttempt.length > 0) {
-            currentPinAttempt = currentPinAttempt.slice(0, -1);
-            updatePinDots();
-        }
-    });
+    const delBtn = newKeypad.querySelector('#btn-pin-delete');
+    if (delBtn) {
+        delBtn.addEventListener('click', () => {
+            if (currentPinAttempt.length > 0) {
+                currentPinAttempt = currentPinAttempt.slice(0, -1);
+                updatePinDots();
+            }
+        });
+    }
 }
 
 function updatePinDots() {
