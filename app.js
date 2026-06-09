@@ -7,11 +7,13 @@ let state = {
     transactions: [],
     installments: [],
     currentTab: 'dashboard',
-    activeRankTab: 'revenue'
+    activeRankTab: 'revenue',
+    passcode: null
 };
 
 // ID da transação em modo de edição (null se for nova transação)
 let editingTransactionId = null;
+let enteredPin = '';
 
 // --- DADOS INICIAIS (SEED DATA) ---
 const seedProducts = [
@@ -136,6 +138,16 @@ function initApp() {
     const storedProducts = localStorage.getItem('financeiq_products');
     const storedTransactions = localStorage.getItem('financeiq_transactions');
     const storedInstallments = localStorage.getItem('financeiq_installments');
+    const storedPasscode = localStorage.getItem('financeiq_passcode');
+
+    if (storedPasscode) {
+        state.passcode = storedPasscode;
+        document.getElementById('lock-screen').style.display = 'flex';
+        resetLockScreenUI();
+    } else {
+        state.passcode = null;
+        document.getElementById('lock-screen').style.display = 'none';
+    }
 
     if (storedProducts && storedTransactions && storedInstallments) {
         state.products = JSON.parse(storedProducts);
@@ -175,6 +187,7 @@ function saveStateToLocalStorage() {
     localStorage.setItem('financeiq_products', JSON.stringify(state.products));
     localStorage.setItem('financeiq_transactions', JSON.stringify(state.transactions));
     localStorage.setItem('financeiq_installments', JSON.stringify(state.installments));
+    localStorage.setItem('financeiq_passcode', state.passcode || '');
 }
 
 // --- DATA & FORMATADORES ---
@@ -492,6 +505,138 @@ function setupEventListeners() {
     // Seletor de período mensal
     document.getElementById('monthly-select-period').addEventListener('change', () => {
         renderMonthlyReport();
+    });
+
+    // --- SEGURANÇA (TECLADO LOCK SCREEN) ---
+    document.querySelectorAll('.pin-key[data-val]').forEach(key => {
+        key.addEventListener('click', () => {
+            const val = key.getAttribute('data-val');
+            if (enteredPin.length < 4) {
+                enteredPin += val;
+                updatePinDots();
+                
+                if (enteredPin.length === 4) {
+                    setTimeout(() => {
+                        if (enteredPin === state.passcode) {
+                            const lockIcon = document.querySelector('.lock-icon');
+                            const unlockIcon = document.querySelector('.unlock-icon');
+                            if (lockIcon && unlockIcon) {
+                                lockIcon.style.display = 'none';
+                                unlockIcon.style.display = 'block';
+                                unlockIcon.classList.add('unlock-animation');
+                            }
+                            
+                            setTimeout(() => {
+                                const lockScreen = document.getElementById('lock-screen');
+                                lockScreen.classList.add('slide-up');
+                                
+                                setTimeout(() => {
+                                    lockScreen.style.display = 'none';
+                                    lockScreen.classList.remove('slide-up');
+                                    resetLockScreenUI();
+                                }, 400);
+                            }, 300);
+                        } else {
+                            const dotsContainer = document.querySelector('.pin-dots');
+                            const dots = document.querySelectorAll('.pin-dot');
+                            
+                            dotsContainer.classList.add('shake');
+                            dots.forEach(d => d.classList.add('error'));
+                            
+                            setTimeout(() => {
+                                dotsContainer.classList.remove('shake');
+                                dots.forEach(d => d.classList.remove('error'));
+                                enteredPin = '';
+                                updatePinDots();
+                            }, 500);
+                        }
+                    }, 100);
+                }
+            }
+        });
+    });
+
+    document.getElementById('pin-clear').addEventListener('click', () => {
+        enteredPin = '';
+        updatePinDots();
+    });
+
+    document.getElementById('pin-backspace').addEventListener('click', () => {
+        if (enteredPin.length > 0) {
+            enteredPin = enteredPin.slice(0, -1);
+            updatePinDots();
+        }
+    });
+
+    // --- CONFIGURAÇÃO DE SEGURANÇA (MODAL PIN) ---
+    const pinModal = document.getElementById('pin-modal');
+    
+    document.getElementById('btn-config-pin').addEventListener('click', () => {
+        document.getElementById('pin-current').value = '';
+        document.getElementById('pin-new').value = '';
+        document.getElementById('pin-confirm').value = '';
+        
+        if (state.passcode) {
+            document.getElementById('pin-current-group').style.display = 'block';
+            document.getElementById('btn-disable-pin').style.display = 'block';
+            document.getElementById('pin-new-label').innerText = 'Novo PIN (4 dígitos)';
+            document.getElementById('pin-modal-desc').innerText = 'Para alterar ou desativar a sua segurança, confirme as informações abaixo.';
+        } else {
+            document.getElementById('pin-current-group').style.display = 'none';
+            document.getElementById('btn-disable-pin').style.display = 'none';
+            document.getElementById('pin-new-label').innerText = 'Cadastrar PIN (4 dígitos)';
+            document.getElementById('pin-modal-desc').innerText = 'Cadastre um PIN numérico de 4 dígitos para proteger o acesso aos seus dados financeiros neste dispositivo.';
+        }
+        
+        pinModal.style.display = 'flex';
+    });
+
+    document.getElementById('close-pin-modal-btn').addEventListener('click', () => {
+        pinModal.style.display = 'none';
+    });
+
+    document.getElementById('btn-save-pin').addEventListener('click', () => {
+        const currentPinInput = document.getElementById('pin-current').value;
+        const newPinInput = document.getElementById('pin-new').value;
+        const confirmPinInput = document.getElementById('pin-confirm').value;
+        
+        if (state.passcode) {
+            if (currentPinInput !== state.passcode) {
+                alert('O PIN atual digitado está incorreto.');
+                return;
+            }
+        }
+        
+        if (newPinInput.length !== 4 || isNaN(newPinInput)) {
+            alert('O novo PIN deve conter exatamente 4 números.');
+            return;
+        }
+        
+        if (newPinInput !== confirmPinInput) {
+            alert('A confirmação do PIN não confere com o novo PIN digitado.');
+            return;
+        }
+        
+        state.passcode = newPinInput;
+        saveStateToLocalStorage();
+        pinModal.style.display = 'none';
+        alert('PIN de segurança salvo com sucesso! Seus dados agora estão protegidos.');
+    });
+
+    document.getElementById('btn-disable-pin').addEventListener('click', () => {
+        const currentPinInput = document.getElementById('pin-current').value;
+        
+        if (currentPinInput !== state.passcode) {
+            alert('Digite o PIN atual correto para desativar a segurança.');
+            return;
+        }
+        
+        if (confirm('Tem certeza de que deseja remover a proteção por PIN? Qualquer pessoa com acesso a este dispositivo poderá ver seus dados.')) {
+            state.passcode = null;
+            saveStateToLocalStorage();
+            pinModal.style.display = 'none';
+            alert('Proteção por PIN desativada com sucesso.');
+        }
     });
 }
 
@@ -1466,3 +1611,30 @@ window.toggleMonthlyInstallmentStatus = function(instId) {
     saveStateToLocalStorage();
     updateUI();
 };
+
+// --- AUXILIARES DO PIN DE SEGURANÇA ---
+
+function updatePinDots() {
+    const dots = document.querySelectorAll('.pin-dot');
+    dots.forEach((dot, idx) => {
+        if (idx < enteredPin.length) {
+            dot.classList.add('filled');
+        } else {
+            dot.classList.remove('filled');
+        }
+    });
+}
+
+function resetLockScreenUI() {
+    enteredPin = '';
+    updatePinDots();
+    
+    const lockIcon = document.querySelector('.lock-icon');
+    const unlockIcon = document.querySelector('.unlock-icon');
+    if (lockIcon && unlockIcon) {
+        lockIcon.style.display = 'block';
+        unlockIcon.style.display = 'none';
+        lockIcon.className = 'fa-solid fa-lock lock-icon lock-pulse';
+        unlockIcon.className = 'fa-solid fa-lock-open unlock-icon';
+    }
+}
