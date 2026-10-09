@@ -1175,3 +1175,492 @@ input[type="range"]::-webkit-slider-thumb {
     border: none;
     transform: scale(0.92);
 }
+
+/* --- ESTILOS DO MULTI-CAIXA / WALLET BAR --- */
+.wallet-bar {
+    background-color: rgba(17, 24, 39, 0.95);
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 45;
+}
+
+@media (min-width: 768px) {
+    .wallet-bar {
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
+    }
+}
+
+.wallet-selector-wrapper {
+    position: relative;
+}
+
+.wallet-selector-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.wallet-selector-btn:hover, .wallet-selector-btn:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.wallet-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.wallet-btn-icon {
+    font-size: 13px;
+    color: var(--color-primary);
+}
+
+.caret-icon {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 2px;
+}
+
+.btn-manage-wallets {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition-fast);
+}
+
+.btn-manage-wallets:hover {
+    color: var(--text-primary);
+    border-color: var(--color-primary);
+}
+
+/* Wallet Dropdown Menu */
+.wallet-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 260px;
+    background: rgba(17, 24, 39, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glow);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    padding: 8px;
+    z-index: 120;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.wallet-dropdown-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 4px;
+}
+
+.wallet-dropdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.wallet-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.wallet-dropdown-item:hover, .wallet-dropdown-item.active {
+    background: rgba(0, 242, 254, 0.1);
+}
+
+.wallet-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wallet-item-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.wallet-item-balance {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+/* --- BARRA DE BUSCA E FILTROS AVANÇADOS --- */
+.search-and-filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    align-items: center;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper .search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.search-input-wrapper input {
+    padding-left: 34px;
+    padding-right: 32px;
+    height: 38px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+}
+
+.btn-clear-search {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.btn-toggle-filters {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 10px;
+    height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+.btn-toggle-filters.active {
+    border-color: var(--color-primary);
+    background: rgba(0, 242, 254, 0.1);
+    color: var(--color-primary);
+}
+
+.filter-count-badge {
+    background: var(--color-primary);
+    color: var(--bg-primary);
+    font-size: 10px;
+    font-weight: 800;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Painel de Filtros Expansível */
+.filter-panel-expandable {
+    margin-bottom: 14px;
+    padding: 14px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.filter-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-panel-header h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-link:hover {
+    color: var(--color-red);
+}
+
+/* Barra de Chips de Filtros Ativos */
+.active-chips-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.chips-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.chips-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.chip-item {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    color: var(--color-primary);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chip-remove-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.chip-remove-btn:hover {
+    color: var(--color-red);
+}
+
+/* --- DRE SIMPLIFICADO (DEMONSTRATIVO DO RESULTADO) --- */
+.dre-card {
+    padding: 16px;
+}
+
+.badge-dre-period {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.dre-table-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.dre-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid transparent;
+}
+
+.dre-row.header-gross {
+    background: rgba(16, 185, 129, 0.06);
+    border-color: rgba(16, 185, 129, 0.15);
+    font-weight: 700;
+}
+
+.dre-row.header-variable {
+    background: rgba(239, 68, 68, 0.04);
+    font-weight: 600;
+    color: var(--color-red);
+}
+
+.dre-row.sub-item {
+    padding-left: 24px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.dre-row.total-margin {
+    background: rgba(79, 172, 254, 0.08);
+    border-color: rgba(79, 172, 254, 0.2);
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.dre-row.header-fixed {
+    background: rgba(245, 158, 11, 0.04);
+    font-weight: 600;
+    color: var(--color-orange);
+}
+
+.dre-row.total-net {
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+    border: 1px solid var(--color-primary);
+    font-size: 16px;
+    font-weight: 800;
+    margin-top: 6px;
+    padding: 12px 10px;
+}
+
+.dre-row.total-net.loss {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(185, 28, 28, 0.1) 100%);
+    border-color: var(--color-red);
+}
+
+.dre-val {
+    font-weight: 700;
+}
+
+.dre-pct {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 6px;
+    font-weight: 500;
+}
+
+/* --- COMPONENTES DE ANEXO E BOTÃO EXPORTAR CSV --- */
+.btn-export-csv {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: var(--color-green);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition-fast);
+}
+
+.btn-export-csv:hover {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.attachment-badge {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    color: var(--color-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.attachment-preview-box {
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.attachment-preview-box img {
+    max-width: 100%;
+    max-height: 140px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.wallet-badge-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Modal de Gerenciador de Caixas Row */
+.wallet-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.wallet-item-row-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wallet-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #ffffff;
+}
+

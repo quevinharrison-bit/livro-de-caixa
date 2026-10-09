@@ -3,7 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FinancesIQ Mobile</title>
+    <title>FinancesIQ Professional - Gestão Financeira SaaS</title>
+    
+    <!-- Script de Limpeza Automática de Cache e Workers em ambiente Local (file://) -->
+    <script>
+      if ('serviceWorker' in navigator && location.protocol === 'file:') {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) caches.delete(name);
+          });
+        }
+      }
+    </script>
     <!-- Metas para PWA no Android e iOS -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -60,29 +76,51 @@
     </div>
 
     <div class="app-container">
-        <!-- Top App Bar (Estilo Android) -->
+        <!-- Top App Bar -->
         <header class="app-header">
             <div class="logo">
                 <i class="fa-solid fa-wallet pulse-icon"></i>
                 <span>Finances<span class="highlight">IQ</span></span>
             </div>
-            <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
+            <div class="header-right" style="display: flex; align-items: center; gap: 6px;">
                 <button class="btn-action delete" title="Resetar Dados" id="btn-reset-db" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
                     <i class="fa-solid fa-rotate-left"></i>
                 </button>
-                <button class="btn-action" title="Exportar Backup" id="btn-export-backup" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                <button class="btn-action" title="Exportar Backup JSON" id="btn-export-backup" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
                     <i class="fa-solid fa-download"></i>
                 </button>
-                <button class="btn-action" title="Importar Backup" id="btn-import-backup" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
+                <button class="btn-action" title="Importar Backup JSON" id="btn-import-backup" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
                     <i class="fa-solid fa-upload"></i>
                 </button>
                 <input type="file" id="import-file-input" accept=".json" style="display: none;">
                 <button class="btn-action" title="Segurança (PIN)" id="btn-config-pin" style="width: 32px; height: 32px; padding: 0; border-radius: 50%;">
                     <i class="fa-solid fa-key"></i>
                 </button>
-                <span class="date-badge"><span id="current-date-span">04/06/2026</span></span>
+                <span class="date-badge"><span id="current-date-span">08/10/2026</span></span>
             </div>
         </header>
+
+        <!-- Barra de Seleção Multi-Caixa (Wallet Bar) -->
+        <div class="wallet-bar">
+            <div class="wallet-selector-wrapper">
+                <button class="wallet-selector-btn" id="btn-wallet-selector">
+                    <span class="wallet-color-dot" id="active-wallet-dot" style="background-color: #00f2fe;"></span>
+                    <i class="fa-solid fa-wallet wallet-btn-icon" id="active-wallet-icon"></i>
+                    <span class="wallet-btn-label" id="active-wallet-name">Caixa Principal</span>
+                    <i class="fa-solid fa-chevron-down caret-icon"></i>
+                </button>
+                <!-- Menu suspenso de alternância de caixa -->
+                <div class="wallet-dropdown-menu" id="wallet-dropdown-menu" style="display: none;">
+                    <div class="wallet-dropdown-header">Alternar Fluxo de Caixa</div>
+                    <div class="wallet-dropdown-list" id="wallet-dropdown-list">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </div>
+            <button class="btn-manage-wallets" id="btn-manage-wallets" title="Gerenciar Caixas">
+                <i class="fa-solid fa-gear"></i> Caixas
+            </button>
+        </div>
 
         <!-- Container de Conteúdo Principal -->
         <main class="main-content">
@@ -90,19 +128,19 @@
             <section id="dashboard" class="tab-pane active">
                 <div class="section-title-wrapper">
                     <h2>Visão Geral</h2>
-                    <p class="subtitle">Estatísticas e saldos em tempo real</p>
+                    <p class="subtitle" id="dashboard-wallet-subtitle">Exibindo contexto: Caixa Principal</p>
                 </div>
 
-                <!-- Carrossel / Grid de Métricas (Scroll Horizontal no Mobile) -->
+                <!-- Carrossel / Grid de Métricas -->
                 <div class="metrics-slider">
                     <div class="metric-card balance-actual">
                         <div class="metric-header">
-                            <span>Saldo Geral Atual</span>
+                            <span>Saldo Atual</span>
                             <div class="metric-icon"><i class="fa-solid fa-vault"></i></div>
                         </div>
                         <div class="metric-value" id="metric-actual-balance">R$ 0,00</div>
                         <div class="metric-footer">
-                            <span class="badge"><i class="fa-solid fa-circle-check"></i> Recebido até hoje</span>
+                            <span class="badge"><i class="fa-solid fa-circle-check"></i> Efetivado em caixa</span>
                         </div>
                     </div>
 
@@ -113,13 +151,13 @@
                         </div>
                         <div class="metric-value" id="metric-projected-balance">R$ 0,00</div>
                         <div class="metric-footer">
-                            <span class="badge"><i class="fa-solid fa-circle-plus"></i> Futuro projetado</span>
+                            <span class="badge"><i class="fa-solid fa-circle-plus"></i> Previsto final</span>
                         </div>
                     </div>
 
                     <div class="metric-card total-receivables">
                         <div class="metric-header">
-                            <span>Total a Receber</span>
+                            <span>A Receber</span>
                             <div class="metric-icon"><i class="fa-solid fa-circle-arrow-up"></i></div>
                         </div>
                         <div class="metric-value text-green" id="metric-to-receive">R$ 0,00</div>
@@ -130,7 +168,7 @@
 
                     <div class="metric-card total-payables">
                         <div class="metric-header">
-                            <span>Total a Pagar</span>
+                            <span>A Pagar</span>
                             <div class="metric-icon"><i class="fa-solid fa-circle-arrow-down"></i></div>
                         </div>
                         <div class="metric-value text-red" id="metric-to-pay">R$ 0,00</div>
@@ -184,79 +222,165 @@
                 </div>
             </section>
 
-            <!-- ABA 2: TRANSAÇÕES -->
+            <!-- ABA 2: TRANSAÇÕES (LIVRO DE CAIXA) -->
             <section id="transactions" class="tab-pane">
-                <div class="section-title-wrapper">
-                    <h2>Livro de Caixa</h2>
-                    <p class="subtitle">Gerencie suas entradas e saídas</p>
+                <div class="section-title-wrapper" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2>Livro de Caixa</h2>
+                        <p class="subtitle">Lançamentos e extrato operacional</p>
+                    </div>
+                    <button class="btn-export-csv" id="btn-export-transactions-csv" title="Exportar planilha Excel/CSV">
+                        <i class="fa-solid fa-file-csv"></i> Exportar CSV
+                    </button>
                 </div>
 
-                <!-- Botão Flutuante (FAB) para Adicionar Transação no Android -->
+                <!-- Botão Flutuante (FAB) para Adicionar Transação -->
                 <button class="fab" id="open-transaction-modal-btn">
                     <i class="fa-solid fa-plus"></i>
                 </button>
 
-                <!-- Filtros de Lançamentos -->
-                <div class="filter-container glass-card" style="margin-bottom: 16px; padding: 12px;">
-                    <div class="form-row" style="gap: 8px;">
+                <!-- Barra de Busca Textual e Controle de Filtros Avançados -->
+                <div class="search-and-filter-bar glass-card">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="filter-search" placeholder="Buscar por descrição, cliente/fornecedor ou nota...">
+                        <button class="btn-clear-search" id="btn-clear-search" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <button class="btn-toggle-filters" id="btn-toggle-filters">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Filtros</span>
+                        <span class="filter-count-badge" id="filter-count-badge" style="display: none;">0</span>
+                    </button>
+                </div>
+
+                <!-- Painel Expansível de Filtros Avançados (Padrão SaaS) -->
+                <div id="advanced-filter-panel" class="glass-card filter-panel-expandable" style="display: none;">
+                    <div class="filter-panel-header">
+                        <h4><i class="fa-solid fa-filter"></i> Filtros Avançados</h4>
+                        <button class="btn-link" id="btn-reset-all-filters"><i class="fa-solid fa-rotate-left"></i> Limpar Tudo</button>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="filter-period">Período</label>
+                            <select id="filter-period">
+                                <option value="todos" selected>Qualquer Data</option>
+                                <option value="hoje">Hoje</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes">Este Mês</option>
+                                <option value="mes-passado">Mês Passado</option>
+                                <option value="ano">Este Ano</option>
+                                <option value="custom">Personalizado...</option>
+                            </select>
+                        </div>
                         <div class="form-group col-6">
                             <label for="filter-type">Tipo</label>
-                            <select id="filter-type" style="padding: 6px 10px; font-size: 13px;">
+                            <select id="filter-type">
                                 <option value="todos">Todos os Tipos</option>
                                 <option value="entrada">Entradas (Receitas)</option>
                                 <option value="saida">Saídas (Despesas)</option>
                             </select>
                         </div>
-                        <div class="form-group col-6">
-                            <label for="filter-period">Período</label>
-                            <select id="filter-period" style="padding: 6px 10px; font-size: 13px;">
-                                <option value="todos" selected>Qualquer Data</option>
-                                <option value="semana">Esta Semana</option>
-                                <option value="mes">Este Mês</option>
-                                <option value="mes-passado">Mês Passado</option>
-                                <option value="custom">Personalizado...</option>
-                            </select>
-                        </div>
                     </div>
-                    
-                    <!-- Intervalo de Datas Personalizado -->
-                    <div id="filter-custom-dates" class="form-row" style="display: none; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 8px;">
+
+                    <!-- Datas Personalizadas -->
+                    <div id="filter-custom-dates" class="form-row" style="display: none; gap: 8px; margin-top: 4px;">
                         <div class="form-group col-6">
                             <label for="filter-start-date">De</label>
-                            <input type="date" id="filter-start-date" style="padding: 6px 10px; font-size: 13px;">
+                            <input type="date" id="filter-start-date">
                         </div>
                         <div class="form-group col-6">
                             <label for="filter-end-date">Até</label>
-                            <input type="date" id="filter-end-date" style="padding: 6px 10px; font-size: 13px;">
+                            <input type="date" id="filter-end-date">
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 8px;">
+                        <div class="form-group col-6">
+                            <label for="filter-status">Status de Pagamento</label>
+                            <select id="filter-status">
+                                <option value="todos">Todos os Status</option>
+                                <option value="pago">Efetivado (Pago/Recebido)</option>
+                                <option value="pendente">Previsto (Pendente/Agendado)</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="filter-method">Meio de Pagamento</label>
+                            <select id="filter-method">
+                                <option value="todos">Todos os Meios</option>
+                                <option value="pix">PIX</option>
+                                <option value="cartao">Cartão de Crédito</option>
+                                <option value="debito">Cartão de Débito</option>
+                                <option value="boleto">Boleto Bancário</option>
+                                <option value="dinheiro">Dinheiro</option>
+                                <option value="transferencia">Transferência / TED</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 8px;">
+                        <div class="form-group col-6">
+                            <label for="filter-cat">Categoria</label>
+                            <select id="filter-cat">
+                                <option value="todos">Todas as Categorias</option>
+                                <option value="Venda de Mercadoria">Venda de Mercadoria</option>
+                                <option value="Prestação de Serviços">Prestação de Serviços</option>
+                                <option value="Fornecedor de Estoque">Fornecedor de Estoque</option>
+                                <option value="Luz/Energia">Luz / Energia</option>
+                                <option value="Internet/SaaS">Internet / SaaS</option>
+                                <option value="Aluguel">Aluguel</option>
+                                <option value="Salários/Encargos">Salários / Encargos</option>
+                                <option value="Impostos/Taxas">Impostos / Taxas</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="filter-sort">Ordenação</label>
+                            <select id="filter-sort">
+                                <option value="date-desc">Data (Mais recente)</option>
+                                <option value="date-asc">Data (Mais antiga)</option>
+                                <option value="val-desc">Valor (Maior -> Menor)</option>
+                                <option value="val-asc">Valor (Menor -> Maior)</option>
+                                <option value="alpha-asc">Descrição (A - Z)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- Resumo dos Filtros na Janela de Lançamentos -->
+                <!-- Barra de Chips de Filtros Ativos -->
+                <div class="active-chips-bar" id="active-chips-bar" style="display: none;">
+                    <span class="chips-label">Filtros ativos:</span>
+                    <div class="chips-list" id="chips-list"></div>
+                </div>
+
+                <!-- Card de Resumo do Período Filtrado -->
                 <div id="filter-summary-card" class="glass-card" style="margin-bottom: 16px; padding: 12px; border-color: var(--border-glow);">
-                    <h4 style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary);"><i class="fa-solid fa-calculator"></i> Balanço do Período Filtrado</h4>
+                    <h4 style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa-solid fa-calculator"></i> Balanço dos Resultados Filtrados</span>
+                        <span id="filtered-count-label" style="font-size: 11px; font-weight: 500; color: var(--color-primary);">0 lançamentos</span>
+                    </h4>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
                         <div style="background: rgba(16, 185, 129, 0.04); padding: 8px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.1);">
-                            <span style="font-size: 10px; color: var(--text-secondary); display:block; text-transform: uppercase; font-weight: 600;">Entradas</span>
-                            <span style="font-size: 13px; font-weight: 700; color: var(--color-green); display: block; line-height: 1.2;" id="sum-filter-entries">R$ 0,00</span>
+                            <span style="font-size: 10px; color: var(--text-secondary); display:block; text-transform: uppercase; font-weight: 600;">Entradas (Receitas)</span>
+                            <span style="font-size: 14px; font-weight: 700; color: var(--color-green); display: block; line-height: 1.2;" id="sum-filter-entries">R$ 0,00</span>
                         </div>
                         <div style="background: rgba(239, 68, 68, 0.04); padding: 8px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.1);">
-                            <span style="font-size: 10px; color: var(--text-secondary); display:block; text-transform: uppercase; font-weight: 600;">Saídas</span>
-                            <span style="font-size: 13px; font-weight: 700; color: var(--color-red); display: block; line-height: 1.2;" id="sum-filter-exits">R$ 0,00</span>
+                            <span style="font-size: 10px; color: var(--text-secondary); display:block; text-transform: uppercase; font-weight: 600;">Saídas (Despesas)</span>
+                            <span style="font-size: 14px; font-weight: 700; color: var(--color-red); display: block; line-height: 1.2;" id="sum-filter-exits">R$ 0,00</span>
                         </div>
                     </div>
                     <div style="background: rgba(255, 255, 255, 0.02); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 11px; font-weight: 600;">Saldo do Período:</span>
+                        <span style="font-size: 11px; font-weight: 600;">Resultado Operacional Filtrado:</span>
                         <span style="font-size: 14px; font-weight: 800;" id="sum-filter-balance">R$ 0,00</span>
                     </div>
                 </div>
 
-                <!-- Lista de Transações em formato de Cards (Melhor para mobile) -->
+                <!-- Lista de Transações (Cards Mobile e SaaS Grid) -->
                 <div class="transactions-list-mobile" id="transactions-list-mobile">
                     <!-- Cards dinâmicos das transações -->
                 </div>
 
-                <!-- Modal de Nova Transação -->
+                <!-- Modal de Nova Transação / Edição -->
                 <div id="transaction-modal" class="modal-overlay" style="display: none;">
                     <div class="modal-content glass-card">
                         <div class="modal-header">
@@ -264,9 +388,17 @@
                             <button class="btn-close" id="close-transaction-modal-btn"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                         <form id="transaction-form" class="responsive-form">
+                            <!-- Seletor de Caixa Destino -->
+                            <div class="form-group">
+                                <label for="trans-wallet">Fluxo de Caixa / Conta <span class="required">*</span></label>
+                                <select id="trans-wallet" required>
+                                    <!-- Preenchido via JS -->
+                                </select>
+                            </div>
+
                             <div class="form-group">
                                 <label for="trans-desc">Descrição <span class="required">*</span></label>
-                                <input type="text" id="trans-desc" placeholder="Ex: Venda de Notebook" required>
+                                <input type="text" id="trans-desc" placeholder="Ex: Venda de Notebook Gamer" required>
                             </div>
 
                             <div class="form-row">
@@ -284,23 +416,29 @@
                                 <div class="form-group col-6">
                                     <label for="trans-type">Tipo <span class="required">*</span></label>
                                     <select id="trans-type" required>
-                                        <option value="entrada" selected>Entrada</option>
-                                        <option value="saida">Saída</option>
+                                        <option value="entrada" selected>Entrada (Receita)</option>
+                                        <option value="saida">Saída (Despesa)</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-6">
                                     <label for="trans-cat">Categoria <span class="required">*</span></label>
                                     <select id="trans-cat" required>
-                                        <option value="Venda de Mercadoria">Venda</option>
-                                        <option value="Prestação de Serviços">Serviço</option>
-                                        <option value="Fornecedor de Estoque">Fornecedor</option>
-                                        <option value="Luz/Energia">Luz / Água</option>
-                                        <option value="Internet/SaaS">SaaS / Internet</option>
+                                        <option value="Venda de Mercadoria">Venda de Mercadoria</option>
+                                        <option value="Prestação de Serviços">Prestação de Serviços</option>
+                                        <option value="Fornecedor de Estoque">Fornecedor de Estoque</option>
+                                        <option value="Luz/Energia">Luz / Energia</option>
+                                        <option value="Internet/SaaS">Internet / SaaS</option>
                                         <option value="Aluguel">Aluguel</option>
-                                        <option value="Salários/Encargos">Salários</option>
+                                        <option value="Salários/Encargos">Salários / Encargos</option>
+                                        <option value="Impostos/Taxas">Impostos / Taxas</option>
                                         <option value="Outros">Outros</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trans-notes">Cliente / Fornecedor / Observação</label>
+                                <input type="text" id="trans-notes" placeholder="Ex: Cliente João Silva - NF 4021">
                             </div>
 
                             <div class="form-group">
@@ -314,14 +452,17 @@
                                 <label for="trans-method">Meio de Pagamento <span class="required">*</span></label>
                                 <select id="trans-method" required>
                                     <option value="pix" selected>PIX</option>
-                                    <option value="cartao">Cartão</option>
+                                    <option value="cartao">Cartão de Crédito</option>
+                                    <option value="debito">Cartão de Débito</option>
+                                    <option value="boleto">Boleto Bancário</option>
                                     <option value="dinheiro">Dinheiro</option>
+                                    <option value="transferencia">Transferência / TED</option>
                                 </select>
                             </div>
 
                             <div class="form-row payment-options">
                                 <div class="form-group col-6">
-                                    <label for="trans-payment">Pagamento</label>
+                                    <label for="trans-payment">Forma de Pagamento</label>
                                     <select id="trans-payment">
                                         <option value="avista" selected>À Vista</option>
                                         <option value="parcelado">Parcelado</option>
@@ -347,11 +488,20 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="trans-status">Status de Pagamento</label>
+                                <label for="trans-status">Status de Pagamento (Conciliação)</label>
                                 <select id="trans-status">
-                                    <option value="pago" selected>Pago / Recebido</option>
-                                    <option value="pendente">Pendente</option>
+                                    <option value="pago" selected>Efetivado (Pago / Recebido)</option>
+                                    <option value="pendente">Previsto (Pendente / Agendado)</option>
                                 </select>
+                            </div>
+
+                            <!-- Anexo de Comprovante de Pagamento -->
+                            <div class="form-group">
+                                <label for="trans-attachment">Anexo / Comprovante (Nota/Recibo/Imagem/PDF)</label>
+                                <input type="file" id="trans-attachment" accept="image/*,application/pdf" style="font-size: 12px; padding: 6px;">
+                                <div id="trans-attachment-preview" class="attachment-preview-box" style="display: none;">
+                                    <!-- Thumbnail da imagem ou indicação de PDF -->
+                                </div>
                             </div>
 
                             <button type="submit" class="btn-primary w-100"><i class="fa-solid fa-floppy-disk"></i> Salvar Lançamento</button>
@@ -360,22 +510,27 @@
                 </div>
             </section>
 
-            <!-- ABA: FECHAMENTO MENSAL / FATURA -->
+            <!-- ABA 3: FECHAMENTO MENSAL / FATURA & DRE -->
             <section id="monthly-report" class="tab-pane">
-                <div class="section-title-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div class="section-title-wrapper" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
                     <div>
                         <h2>Fechamento Mensal</h2>
-                        <p class="subtitle">Faturas e extratos por período</p>
+                        <p class="subtitle">Extratos, Faturas e DRE Operacional</p>
                     </div>
-                    <button class="btn-primary" id="btn-print-report" style="padding: 6px 12px; font-size: 13px; margin-top: 0;">
-                        <i class="fa-solid fa-file-pdf"></i> Imprimir PDF
-                    </button>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-export-csv" id="btn-export-monthly-csv" title="Exportar CSV do Mês">
+                            <i class="fa-solid fa-file-csv"></i> CSV
+                        </button>
+                        <button class="btn-primary" id="btn-print-report" style="padding: 6px 12px; font-size: 13px; margin-top: 0;">
+                            <i class="fa-solid fa-file-pdf"></i> Imprimir PDF
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Seletor de Mês e Filtro -->
                 <div class="glass-card" style="margin-bottom: 16px; padding: 12px;">
                     <div class="form-group">
-                        <label for="monthly-select-period">Selecione o Mês de Referência</label>
+                        <label for="monthly-select-period">Mês de Referência</label>
                         <select id="monthly-select-period" style="padding: 8px 12px;">
                             <!-- Preenchido dinamicamente por JS -->
                         </select>
@@ -385,18 +540,30 @@
                 <!-- Métricas da Fatura / Fechamento do Mês -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div class="glass-card" style="padding: 12px; border-left: 4px solid var(--color-red); margin-bottom: 0;">
-                        <span style="font-size: 11px; color: var(--text-secondary); display:block; text-transform: uppercase;">Fatura de Despesas (Saídas)</span>
+                        <span style="font-size: 11px; color: var(--text-secondary); display:block; text-transform: uppercase;">Total Despesas (Saídas)</span>
                         <span style="font-size: 18px; font-weight: 800; color: var(--color-red);" id="monthly-total-exits">R$ 0,00</span>
                         <small style="font-size: 9px; color: var(--text-muted); display: block;" id="monthly-detail-exits">R$ 0,00 Pago / R$ 0,00 Pend.</small>
                     </div>
                     <div class="glass-card" style="padding: 12px; border-left: 4px solid var(--color-green); margin-bottom: 0;">
-                        <span style="font-size: 11px; color: var(--text-secondary); display:block; text-transform: uppercase;">Receitas do Mês (Entradas)</span>
+                        <span style="font-size: 11px; color: var(--text-secondary); display:block; text-transform: uppercase;">Total Receitas (Entradas)</span>
                         <span style="font-size: 18px; font-weight: 800; color: var(--color-green);" id="monthly-total-entries">R$ 0,00</span>
                         <small style="font-size: 9px; color: var(--text-muted); display: block;" id="monthly-detail-entries">R$ 0,00 Rec. / R$ 0,00 Pend.</small>
                     </div>
                 </div>
 
-                <!-- Detalhamento de Despesas (Fatura de Cartão) -->
+                <!-- DEMONSTRATIVO DE RESULTADO (DRE SIMPLIFICADO) -->
+                <div class="glass-card dre-card" style="margin-bottom: 16px;">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3><i class="fa-solid fa-file-invoice-dollar"></i> DRE Operacional Simplificado</h3>
+                        <span class="badge-dre-period" id="dre-period-badge">Mês Atual</span>
+                    </div>
+                    
+                    <div class="dre-table-wrapper" id="dre-table-container">
+                        <!-- Preenchido via JS com o Demonstrativo do Resultado -->
+                    </div>
+                </div>
+
+                <!-- Detalhamento de Despesas (Fatura do Mês) -->
                 <div class="glass-card" style="margin-bottom: 16px;">
                     <div class="card-header">
                         <h3><i class="fa-solid fa-credit-card"></i> Itens da Fatura (Despesas do Mês)</h3>
@@ -417,7 +584,7 @@
                 </div>
             </section>
 
-            <!-- ABA 3: MERCADORIAS -->
+            <!-- ABA 4: MERCADORIAS -->
             <section id="products" class="tab-pane">
                 <div class="section-title-wrapper">
                     <h2>Meus Produtos</h2>
@@ -425,7 +592,7 @@
                 </div>
 
                 <div class="products-mobile-layout">
-                    <!-- Formulário Rápido de Cadastro (Acordeão/Colapsável ou Card Fixo) -->
+                    <!-- Formulário Rápido de Cadastro -->
                     <div class="glass-card quick-product-card">
                         <div class="card-header">
                             <h3><i class="fa-solid fa-box-open"></i> Nova Mercadoria</h3>
@@ -455,7 +622,7 @@
                 </div>
             </section>
 
-            <!-- ABA 4: PRECIFICAÇÃO INTELIGENTE -->
+            <!-- ABA 5: PRECIFICAÇÃO INTELIGENTE -->
             <section id="pricing" class="tab-pane">
                 <div class="section-title-wrapper">
                     <h2>Precificação</h2>
@@ -554,6 +721,74 @@
             </div>
         </div>
 
+        <!-- MODAL DE GERENCIAMENTO DE CAIXAS (MULTI-WALLET MANAGER) -->
+        <div id="wallet-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content glass-card" style="max-width: 440px;">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-sliders"></i> Gerenciar Fluxos de Caixa</h3>
+                    <button class="btn-close" id="close-wallet-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="wallet-manager-body">
+                    <!-- Formulário de Criar/Editar Caixa -->
+                    <form id="wallet-form" class="responsive-form" style="margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <h4 id="wallet-form-title" style="font-size: 13px; font-weight: 600; color: var(--color-primary);"><i class="fa-solid fa-plus"></i> Criar Novo Caixa</h4>
+                        
+                        <div class="form-group">
+                            <label for="wallet-name">Nome do Caixa <span class="required">*</span></label>
+                            <input type="text" id="wallet-name" placeholder="Ex: Caixa Loja / Empresa" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label for="wallet-icon">Ícone Identificador</label>
+                                <select id="wallet-icon">
+                                    <option value="fa-wallet">💼 Carteira</option>
+                                    <option value="fa-store">🏪 Loja / Empresa</option>
+                                    <option value="fa-user">👤 Pessoal</option>
+                                    <option value="fa-calendar-star">🎉 Eventos / Feiras</option>
+                                    <option value="fa-building-columns">🏦 Conta Bancária</option>
+                                    <option value="fa-piggy-bank">🐖 Cofrinho / Reserva</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-6">
+                                <label for="wallet-color">Cor da Etiqueta</label>
+                                <input type="color" id="wallet-color" value="#00f2fe" style="height: 38px; padding: 2px; cursor: pointer;">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button type="submit" class="btn-primary" style="flex: 1; margin-top: 0;"><i class="fa-solid fa-check"></i> Salvar Caixa</button>
+                            <button type="button" class="btn-primary delete" id="btn-cancel-wallet-edit" style="display: none; margin-top: 0;">Cancelar</button>
+                        </div>
+                    </form>
+
+                    <!-- Lista de Caixas Existentes -->
+                    <h4 style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;"><i class="fa-solid fa-list"></i> Caixas Cadastrados</h4>
+                    <div class="wallets-list-container" id="wallets-list-container">
+                        <!-- Lista dinamica com acoes de editar e excluir -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL VISUALIZADOR DE COMPROVANTES (RECEIPT VIEWER) -->
+        <div id="receipt-viewer-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content glass-card" style="max-width: 500px; text-align: center;">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-paperclip"></i> Comprovante Anexado</h3>
+                    <button class="btn-close" id="close-receipt-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="receipt-display-area" style="max-height: 400px; overflow: auto; margin-bottom: 12px;">
+                    <!-- Imagem ou PDF exibido via JS -->
+                </div>
+                <div style="display: flex; justify-content: space-between; gap: 8px;">
+                    <a id="btn-download-receipt" class="btn-primary" download="comprovante" style="flex: 1; text-decoration: none;"><i class="fa-solid fa-download"></i> Baixar Arquivo</a>
+                    <button id="btn-remove-receipt" class="btn-primary delete" style="flex: 1;"><i class="fa-solid fa-trash"></i> Remover Anexo</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de Configuração de PIN/Senha -->
         <div id="pin-modal" class="modal-overlay" style="display: none;">
             <div class="modal-content glass-card">
@@ -589,7 +824,7 @@
             </div>
         </div>
 
-        <!-- Bottom Navigation Bar (Barra Inferior Estilo Android Nativo) -->
+        <!-- Bottom Navigation Bar -->
         <nav class="bottom-nav">
             <button class="nav-btn active" data-tab="dashboard">
                 <i class="fa-solid fa-chart-line"></i>
